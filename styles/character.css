@@ -1,0 +1,285 @@
+/* ==================== 角色图片显示系统 - 超大尺寸版本 ==================== */
+
+/* 角色层容器 - 基础布局 */
+.character-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+    overflow: hidden; /* 防止图片溢出 */
+}
+
+/* 角色图片容器 - 超大尺寸 */
+.character-container {
+    position: absolute;
+    right: 20px;
+    top: 80px;
+    bottom: auto;
+    width: 800px;
+    height: 900px;
+    z-index: 10;
+    overflow: visible;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+}
+
+/* 角色图片 - 超大缩放 */
+.character-sprite {
+    max-width: 200%;
+    max-height: 200%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    object-position: bottom right;
+    background: transparent;
+    filter: drop-shadow(4px 6px 15px rgba(0, 0, 0, 0.6));
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    transform-origin: bottom right;
+    transform: scale(1.8);
+}
+
+/* 角色加载状态 */
+.character-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    font-size: 16px;
+    z-index: 5;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top: 3px solid #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 10px;
+}
+
+/* ==================== 进场动画 ==================== */
+
+/* 默认进场动画 - 从右侧滑入 */
+@keyframes character-enter-right {
+    0% {
+        opacity: 0;
+        transform: translateX(100px) scale(1.8);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0) scale(1.8);
+    }
+}
+
+/* 从左侧进场 */
+@keyframes character-enter-left {
+    0% {
+        opacity: 0;
+        transform: translateX(-100px) scale(1.8);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0) scale(1.8);
+    }
+}
+
+/* 淡入动画 */
+@keyframes character-fade-in {
+    0% {
+        opacity: 0;
+        transform: scale(1.6);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1.8);
+    }
+}
+
+/* 从下方滑入 */
+@keyframes character-slide-up {
+    0% {
+        opacity: 0;
+        transform: translateY(50px) scale(1.8);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1.8);
+    }
+}
+
+/* 动画类 */
+.character-sprite.enter-right {
+    animation: character-enter-right 0.8s ease-out;
+}
+
+.character-sprite.enter-left {
+    animation: character-enter-left 0.8s ease-out;
+}
+
+.character-sprite.fade-in {
+    animation: character-fade-in 0.6s ease-out;
+}
+
+.character-sprite.slide-up {
+    animation: character-slide-up 0.8s ease-out;
+}
+
+/* 退场动画 */
+.character-sprite.exit-right {
+    animation: character-exit-right 0.6s ease-in forwards;
+}
+
+.character-sprite.exit-left {
+    animation: character-exit-left 0.6s ease-in forwards;
+}
+
+@keyframes character-exit-right {
+    0% {
+        opacity: 1;
+        transform: translateX(0) scale(1.8);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(100px) scale(1.8);
+    }
+}
+
+@keyframes character-exit-left {
+    0% {
+        opacity: 1;
+        transform: translateX(0) scale(1.8);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(-100px) scale(1.8);
+    }
+}
+
+/* ==================== 抠图效果 ==================== */
+
+/* 简单白色抠图 */
+.character-sprite.simple-chroma {
+    mix-blend-mode: multiply;
+    filter: drop-shadow(4px 6px 15px rgba(0, 0, 0, 0.6)) 
+            contrast(1.1) 
+            brightness(1.05);
+}
+
+/* 高级滤镜抠图 */
+.character-sprite.advanced-filter {
+    filter: drop-shadow(4px 6px 15px rgba(0, 0, 0, 0.6))
+            contrast(1.2)
+            brightness(1.1)
+            saturate(1.1);
+    mix-blend-mode: multiply;
+}
+
+/* Canvas处理后的图片 */
+.character-sprite.canvas-processed {
+    /* Canvas处理后不需要额外滤镜 */
+    filter: drop-shadow(4px 6px 15px rgba(0, 0, 0, 0.6));
+}
+
+/* ==================== 响应式设计 ==================== */
+
+/* 超大屏幕 */
+@media (min-width: 1600px) {
+    .character-container {
+        right: 30px;
+        top: 80px;
+        width: 900px;
+        height: 1000px;
+    }
+    
+    .character-sprite {
+        transform: scale(2.0);
+    }
+}
+
+/* 大屏幕 */
+@media (min-width: 1400px) and (max-width: 1599px) {
+    .character-container {
+        right: 25px;
+        top: 80px;
+        width: 850px;
+        height: 950px;
+    }
+    
+    .character-sprite {
+        transform: scale(1.9);
+    }
+}
+
+/* 中等屏幕 */
+@media (max-width: 1399px) and (min-width: 1200px) {
+    .character-container {
+        right: 20px;
+        top: 75px;
+        width: 750px;
+        height: 850px;
+    }
+    
+    .character-sprite {
+        transform: scale(1.7);
+    }
+}
+
+/* 小桌面 */
+@media (max-width: 1199px) and (min-width: 900px) {
+    .character-container {
+        right: 15px;
+        top: 70px;
+        width: 650px;
+        height: 750px;
+    }
+    
+    .character-sprite {
+        transform: scale(1.5);
+    }
+}
+
+/* 平板 */
+@media (max-width: 899px) and (min-width: 600px) {
+    .character-container {
+        right: 15px;
+        top: 70px;
+        width: 500px;
+        height: 650px;
+    }
+    
+    .character-sprite {
+        transform: scale(1.3);
+    }
+}
+
+/* 手机 */
+@media (max-width: 599px) {
+    .character-container {
+        right: 10px;
+        top: 65px;
+        width: 400px;
+        height: 550px;
+    }
+    
+    .character-sprite {
+        transform: scale(1.2);
+    }
+}
+
+/* ==================== 工具动画 ==================== */
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

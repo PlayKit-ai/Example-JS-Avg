@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>清理游戏缓存</title>
+    <link rel="icon" type="image/png" href="styles/spray_i358.PNG">
+    <link rel="shortcut icon" type="image/png" href="styles/spray_i358.PNG">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .button.danger {
+            background: #dc3545;
+        }
+        .button.danger:hover {
+            background: #c82333;
+        }
+        .info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            border-left: 4px solid #007bff;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            border-left: 4px solid #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 游戏缓存清理工具</h1>
+        
+        <div class="info">
+            <strong>说明：</strong><br>
+            如果游戏出现重复回复或异常行为，可以使用此工具清理缓存。
+        </div>
+
+        <button class="button" onclick="clearDialogueHistory()">
+            🗨️ 清理对话历史
+        </button>
+
+        <button class="button" onclick="clearImageCache()">
+            🖼️ 清理图像缓存
+        </button>
+
+        <button class="button" onclick="clearGameState()">
+            🎮 清理游戏状态
+        </button>
+
+        <button class="button danger" onclick="clearAllData()">
+            🗑️ 清理所有数据（重置游戏）
+        </button>
+
+        <button class="button" onclick="showCacheInfo()">
+            📊 查看缓存信息
+        </button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // 存储键名（与游戏中保持一致）
+        const STORAGE_KEYS = {
+            PLAYER_PROFILE: 'ai_galgame_player_profile',
+            AI_PROFILE: 'ai_galgame_ai_profile',
+            DIALOGUE_HISTORY: 'ai_galgame_dialogue_history',
+            GAME_STATE: 'ai_galgame_game_state',
+            CHARACTER_IMAGE_CACHE: 'ai_galgame_character_images',
+            BACKGROUND_IMAGE_CACHE: 'ai_galgame_background_images',
+            LAST_PLAY_TIME: 'ai_galgame_last_play_time'
+        };
+
+        function showResult(message, isSuccess = true) {
+            const result = document.getElementById('result');
+            result.className = isSuccess ? 'success' : 'info';
+            result.innerHTML = message;
+        }
+
+        function clearDialogueHistory() {
+            try {
+                localStorage.removeItem(STORAGE_KEYS.DIALOGUE_HISTORY);
+                showResult('✅ 对话历史已清理！<br>现在可以重新开始对话了。');
+            } catch (error) {
+                showResult('❌ 清理对话历史失败: ' + error.message, false);
+            }
+        }
+
+        function clearImageCache() {
+            try {
+                localStorage.removeItem(STORAGE_KEYS.CHARACTER_IMAGE_CACHE);
+                localStorage.removeItem(STORAGE_KEYS.BACKGROUND_IMAGE_CACHE);
+                showResult('✅ 图像缓存已清理！<br>下次游戏时会重新生成图像。');
+            } catch (error) {
+                showResult('❌ 清理图像缓存失败: ' + error.message, false);
+            }
+        }
+
+        function clearGameState() {
+            try {
+                localStorage.removeItem(STORAGE_KEYS.GAME_STATE);
+                localStorage.removeItem(STORAGE_KEYS.LAST_PLAY_TIME);
+                showResult('✅ 游戏状态已清理！<br>下次启动时需要重新设置角色。');
+            } catch (error) {
+                showResult('❌ 清理游戏状态失败: ' + error.message, false);
+            }
+        }
+
+        function clearAllData() {
+            if (!confirm('确定要清理所有数据吗？这将重置整个游戏！')) {
+                return;
+            }
+
+            try {
+                Object.values(STORAGE_KEYS).forEach(key => {
+                    localStorage.removeItem(key);
+                });
+                showResult('✅ 所有数据已清理！<br>游戏已完全重置，请刷新页面重新开始。');
+            } catch (error) {
+                showResult('❌ 清理所有数据失败: ' + error.message, false);
+            }
+        }
+
+        function showCacheInfo() {
+            let info = '<strong>📊 当前缓存信息：</strong><br><br>';
+            let totalSize = 0;
+
+            Object.entries(STORAGE_KEYS).forEach(([name, key]) => {
+                const data = localStorage.getItem(key);
+                if (data) {
+                    const size = new Blob([data]).size;
+                    totalSize += size;
+                    info += `${name}: ${(size / 1024).toFixed(2)} KB<br>`;
+                } else {
+                    info += `${name}: 无数据<br>`;
+                }
+            });
+
+            info += `<br><strong>总大小: ${(totalSize / 1024).toFixed(2)} KB</strong>`;
+            showResult(info, false);
+        }
+
+        // 页面加载时显示缓存信息
+        window.onload = function() {
+            showCacheInfo();
+        };
+    </script>
+</body>
+</html>

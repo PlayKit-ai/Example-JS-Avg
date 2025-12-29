@@ -1,0 +1,2003 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Galgame | Agentland</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/png" href="styles/spray_i358.PNG">
+    <link rel="shortcut icon" type="image/png" href="styles/spray_i358.PNG">
+    <link rel="apple-touch-icon" href="styles/spray_i358.PNG">
+    <link rel="stylesheet" href="styles/game-ui.css">
+    <link rel="stylesheet" href="styles/character.css">
+    <style>
+        :root {
+            --bg-color: #08080a;
+            --accent-color: #fff;
+            --secondary-color: rgba(255, 255, 255, 0.4);
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --error: #ff4d4d;
+            --transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: "Optima", "Bodoni 72", "Cinzel", "PingFang SC", serif;
+            color: var(--accent-color);
+        }
+
+        /* ==================== 主菜单样式 ==================== */
+        
+        /* 1. 动态流动背景层 */
+        .canvas-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            background: 
+                radial-gradient(circle at 20% 30%, #1a1a2e 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, #0f172a 0%, transparent 40%);
+            filter: blur(80px);
+            animation: bgMove 20s infinite alternate;
+        }
+
+        @keyframes bgMove {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.2) translate(2%, 2%); }
+        }
+
+        /* 2. 胶片噪点质感层 */
+        .noise {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            opacity: 0.04;
+            pointer-events: none;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMjAwIDIwMCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48ZmlsdGVyIGlkPSduJz48ZmVidXJidWxlbmNlIHR5cGU9J2ZyYWN0YWxOb2lzZScgYmFzZUZyZXF1ZW5jeT0nMC42NScgbnVtT2N0YXZlcz0nMycvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIGZpbHRlcj0ndXInLz48L3N2Zz4=');
+        }
+
+        /* 主菜单界面 */
+        .main-menu-screen {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .main-menu-screen.active {
+            display: block;
+            opacity: 1;
+        }
+
+        .main-menu-screen.fade-out {
+            opacity: 0;
+        }
+
+        /* 布局容器 */
+        .wrapper {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100vh;
+            padding-left: 12%;
+            position: relative;
+            z-index: 10;
+            pointer-events: auto;
+        }
+
+        /* 标题部分 */
+        .header {
+            margin-bottom: 100px;
+        }
+
+        .title-main {
+            font-size: 64px;
+            font-weight: 200;
+            letter-spacing: 12px;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .title-sub {
+            font-size: 12px;
+            letter-spacing: 6px;
+            color: var(--secondary-color);
+            text-transform: uppercase;
+            padding-left: 4px;
+        }
+
+        /* 菜单部分 */
+        .menu {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            pointer-events: auto;
+        }
+
+        .nav-item {
+            position: relative;
+            text-decoration: none;
+            color: var(--secondary-color);
+            font-size: 16px;
+            letter-spacing: 4px;
+            cursor: pointer;
+            transition: var(--transition);
+            width: fit-content;
+            display: flex;
+            align-items: center;
+            background: none;
+            border: none;
+            font-family: inherit;
+            pointer-events: auto;
+        }
+
+        /* 悬浮时的圆点标记 */
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            left: -30px;
+            width: 4px;
+            height: 4px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            opacity: 0;
+            transition: var(--transition);
+            box-shadow: 0 0 10px #fff;
+        }
+
+        .nav-item:hover {
+            color: var(--accent-color);
+            transform: translateX(10px);
+            letter-spacing: 6px;
+        }
+
+        .nav-item:hover::before {
+            opacity: 1;
+            left: -20px;
+        }
+
+        .nav-item:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .nav-item:disabled:hover {
+            color: var(--secondary-color);
+            transform: none;
+            letter-spacing: 4px;
+        }
+
+        .nav-item:disabled::before {
+            opacity: 0;
+        }
+
+        /* 右下角装饰文字 */
+        .decoration {
+            position: fixed;
+            bottom: 60px;
+            right: 80px;
+            text-align: right;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .dec-line {
+            font-size: 10px;
+            color: rgba(255,255,255,0.15);
+            letter-spacing: 3px;
+            margin-top: 6px;
+            font-family: monospace;
+        }
+
+        /* 扫描线动画效果 */
+        .scanline {
+            width: 100%;
+            height: 100px;
+            z-index: 1;
+            background: linear-gradient(0deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0) 100%);
+            position: absolute;
+            bottom: 100%;
+            animation: scan 8s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scan {
+            0% { bottom: 100%; }
+            100% { bottom: -100px; }
+        }
+
+        /* ==================== 角色创建界面样式 ==================== */
+        .setup-screen {
+            display: none;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            position: relative;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .setup-screen.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 1;
+        }
+
+        .setup-screen.fade-out {
+            opacity: 0;
+        }
+
+        /* 角色创建页扫描线 */
+        .setup-scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            z-index: 1;
+            background: linear-gradient(to bottom, transparent, rgba(255, 105, 180, 0.05), transparent);
+            animation: setup-scan 6s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes setup-scan { from { top: -100px; } to { top: 100vh; } }
+
+        /* 主容器 */
+        .setup-wrapper {
+            width: 90%;
+            max-width: 1200px;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+            margin: 0 auto;
+        }
+
+        .setup-wrapper header {
+            margin-bottom: 40px;
+            flex-shrink: 0;
+        }
+
+        .protocol-title {
+            font-size: 10px;
+            color: #ff69b4;
+            letter-spacing: 5px;
+            opacity: 0.7;
+            margin-bottom: 8px;
+        }
+
+        .setup-main-title {
+            font-size: 32px;
+            font-weight: 200;
+            letter-spacing: 8px;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        .step-bar {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .step-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+            min-width: 180px;
+        }
+
+        .progress-track {
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .progress-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 50%;
+            background: #ff69b4;
+            box-shadow: 0 0 10px #ff69b4;
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* 步骤控制 */
+        .step-container {
+            display: none;
+            height: 100%;
+        }
+
+        .step-container.active {
+            display: block;
+            animation: setupFadeIn 0.8s ease forwards;
+        }
+
+        .step-container form {
+            display: flex;
+            gap: 40px;
+            height: 100%;
+        }
+
+        @keyframes setupFadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .panel-side {
+            width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            flex-shrink: 0;
+        }
+
+        .panel-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* 输入样式 */
+        .setup-form-group {
+            position: relative;
+        }
+
+        .setup-form-group label {
+            display: block;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        .setup-form-group label span {
+            color: #ff69b4;
+        }
+
+        .setup-form-group input[type="text"],
+        .setup-form-group textarea {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 105, 180, 0.3);
+            color: #fff;
+            padding: 12px;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            transition: 0.3s;
+            border-radius: 0;
+        }
+
+        .setup-form-group input:focus,
+        .setup-form-group textarea:focus {
+            border-color: #ff69b4;
+            background: rgba(255, 105, 180, 0.05);
+            box-shadow: 0 0 15px rgba(255, 105, 180, 0.1);
+        }
+
+        .setup-form-group textarea {
+            height: 160px;
+            resize: none;
+            line-height: 1.6;
+        }
+
+        .setup-form-group textarea.short {
+            height: 100px;
+        }
+
+        /* 性别按钮 */
+        .setup-gender-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .setup-gender-btn {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid rgba(255, 105, 180, 0.3);
+            background: transparent;
+            color: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            text-align: center;
+            font-size: 12px;
+            transition: 0.3s;
+            font-family: inherit;
+        }
+
+        .setup-gender-btn:hover {
+            border-color: rgba(255, 105, 180, 0.6);
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .setup-gender-btn.selected {
+            border-color: #ff69b4;
+            color: #ff69b4;
+            background: rgba(255, 105, 180, 0.1);
+        }
+
+        /* AI 预览 */
+        .ai-visual-frame {
+            width: 100%;
+            height: 400px;
+            border: 2px solid #ff69b4;
+            background: rgba(255, 255, 255, 0.01);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .ai-visual-frame:hover {
+            background: rgba(255, 105, 180, 0.05);
+        }
+
+        .ai-visual-frame.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .ai-visual-frame.disabled:hover {
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .scanner-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #ff69b4;
+            box-shadow: 0 0 15px #ff69b4;
+            animation: scanner-move 4s infinite linear;
+        }
+
+        @keyframes scanner-move {
+            0% { top: -5%; }
+            100% { top: 105%; }
+        }
+
+        .ai-visual-frame .gen-tips {
+            font-size: 12px;
+            color: rgba(255, 105, 180, 0.6);
+            text-align: center;
+            line-height: 1.8;
+        }
+
+        .ai-visual-frame .gen-status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 10px;
+            color: rgba(255, 105, 180, 0.6);
+        }
+
+        .ai-visual-frame .gen-status.ready {
+            color: #ff69b4;
+        }
+
+        #ai-preview-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: none;
+        }
+
+        #ai-image-loading {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #ai-image-loading .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba(255, 105, 180, 0.3);
+            border-top-color: #ff69b4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #ai-image-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* 按钮 */
+        .setup-actions {
+            margin-top: auto;
+            padding: 20px 0 40px 0;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .btn-primary {
+            background: transparent;
+            border: 1px solid #ff69b4;
+            color: #ff69b4;
+            padding: 15px 50px;
+            cursor: pointer;
+            font-weight: bold;
+            letter-spacing: 2px;
+            transition: 0.3s;
+            font-family: inherit;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .btn-primary:hover {
+            background: #ff69b4;
+            color: #000;
+            box-shadow: 0 0 20px rgba(255, 105, 180, 0.4);
+        }
+
+        .btn-back {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            transition: 0.3s;
+            padding: 15px 20px;
+        }
+
+        .btn-back:hover {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* 错误提示 */
+        .error-message {
+            color: #ff4d4d;
+            font-size: 11px;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .setup-form-group input.error,
+        .setup-form-group textarea.error {
+            border-color: #ff4d4d;
+        }
+
+        /* 加载遮罩 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-content {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .loading-content p {
+            color: var(--accent-color);
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .wrapper {
+                padding-left: 8%;
+            }
+            
+            .title-main {
+                font-size: 48px;
+                letter-spacing: 8px;
+            }
+            
+            .nav-item {
+                font-size: 14px;
+            }
+            
+            .decoration {
+                bottom: 40px;
+                right: 40px;
+            }
+            
+            .main-container {
+                padding: 20px 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .title-main {
+                font-size: 36px;
+                letter-spacing: 6px;
+            }
+            
+            .menu {
+                gap: 30px;
+            }
+            
+            .decoration {
+                bottom: 20px;
+                right: 20px;
+            }
+            
+            .dec-line {
+                font-size: 8px;
+            }
+        }
+
+        /* ==================== 游戏界面样式 ==================== */
+
+        .game-screen {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            background: #000;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+        }
+
+        .game-screen.active {
+            display: block !important;
+            position: fixed !important;
+            top: 0;
+            left: 0;
+            z-index: 100 !important;
+            opacity: 1;
+        }
+
+        .game-screen.fade-out {
+            opacity: 0;
+        }
+
+        /* 背景层 */
+        .game-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+        }
+
+        .background-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            filter: blur(1px);
+            display: block;
+        }
+
+        .background-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #fff;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+            z-index: 2;
+        }
+
+        /* 角色立绘层 */
+        .character-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .character-container {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            width: 400px;
+            height: 90%;
+            z-index: 1;
+        }
+
+        .character-sprite {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            background: transparent;
+            filter: drop-shadow(3px 5px 10px rgba(0, 0, 0, 0.5));
+            animation: character-enter-from-right 0.8s ease-out;
+            transition: all 0.3s ease;
+        }
+
+        .character-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 10px;
+        }
+
+        /* UI层 */
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        /* 底部UI区域 */
+        .bottom-ui {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            flex-direction: column;
+            pointer-events: none;
+            padding: 20px;
+        }
+
+        /* 对话框 */
+        .dialogue-box {
+            width: 100%;
+            pointer-events: auto;
+            margin-bottom: 15px;
+            animation: dialogue-slide-up 0.5s ease-out;
+        }
+
+        .character-name-box {
+            background: transparent;
+            color: #000;
+            padding: 10px 25px;
+            border-radius: 20px 20px 0 0;
+            font-weight: bold;
+            font-size: 16px;
+            display: inline-block;
+            margin-bottom: -2px;
+            box-shadow: none;
+            position: relative;
+            z-index: 1;
+            border: 3px solid #ff69b4;
+            border-bottom: none;
+        }
+
+        .dialogue-content {
+            background: transparent;
+            backdrop-filter: none;
+            border-radius: 0 25px 25px 25px;
+            padding: 30px 35px;
+            box-shadow: none;
+            position: relative;
+            min-height: 140px;
+            border: 3px solid #ff69b4;
+        }
+
+        .dialogue-text {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #000;
+            min-height: 80px;
+            word-wrap: break-word;
+            position: relative;
+            font-weight: bold;
+        }
+
+        .dialogue-indicator {
+            position: absolute;
+            bottom: 15px;
+            right: 25px;
+            color: #000;
+            font-size: 24px;
+            animation: indicator-pulse 2s infinite;
+        }
+
+        /* 聊天历史记录框 */
+        .chat-history-area {
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-bottom: 10px;
+            pointer-events: auto;
+        }
+
+        .chat-history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: transparent;
+            border: 3px solid #ff69b4;
+            border-bottom: none;
+            border-radius: 15px 15px 0 0;
+            padding: 8px 15px;
+            font-weight: bold;
+            color: #000;
+            font-size: 14px;
+        }
+
+        .history-toggle-btn {
+            background: transparent;
+            border: none;
+            color: #ff69b4;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 2px 5px;
+            border-radius: 3px;
+            transition: all 0.3s ease;
+        }
+
+        .chat-history-content {
+            background: transparent;
+            border: 3px solid #ff69b4;
+            border-top: none;
+            border-radius: 0 0 15px 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+        }
+
+        .chat-history-content.collapsed {
+            max-height: 0;
+            border: none;
+            overflow: hidden;
+        }
+
+        .chat-history-messages {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .history-message {
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            line-height: 1.4;
+            word-wrap: break-word;
+            max-width: 85%;
+            font-weight: bold;
+        }
+
+        .history-message.player {
+            align-self: flex-end;
+            background: rgba(255, 105, 180, 0.2);
+            color: #000;
+            border: 1px solid #ff69b4;
+        }
+
+        .history-message.ai {
+            align-self: flex-start;
+            background: rgba(0, 0, 0, 0.1);
+            color: #000;
+            border: 1px solid #666;
+        }
+
+        /* 输入区域 */
+        .input-area {
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            pointer-events: auto;
+        }
+
+        .input-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: transparent;
+            backdrop-filter: none;
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: none;
+            border: 3px solid #ff69b4;
+        }
+
+        #player-input {
+            width: 100%;
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: 15px;
+            resize: none;
+            min-height: 60px;
+            max-height: 120px;
+            font-family: inherit;
+            color: #000;
+            line-height: 1.5;
+            font-weight: bold;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            align-self: flex-end;
+            box-shadow: 0 4px 15px rgba(255, 154, 158, 0.4);
+        }
+
+        /* 游戏菜单 */
+        .game-menu {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            display: flex;
+            gap: 12px;
+            pointer-events: auto;
+        }
+
+        .menu-btn {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 10px 18px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        /* 选择区域 */
+        .choice-area {
+            position: absolute;
+            bottom: 220px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 800px;
+            pointer-events: auto;
+        }
+
+        .choice-btn {
+            display: block;
+            width: 100%;
+            background: transparent;
+            backdrop-filter: none;
+            border: 3px solid #ff69b4;
+            border-radius: 18px;
+            padding: 18px 30px;
+            margin-bottom: 12px;
+            font-size: 16px;
+            color: #000;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            box-shadow: none;
+            font-weight: bold;
+        }
+
+        /* 动画效果 */
+        @keyframes character-enter-from-right {
+            0% {
+                transform: translateX(100px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes dialogue-slide-up {
+            0% {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes indicator-pulse {
+            0%, 100% { 
+                opacity: 0.6; 
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 1; 
+                transform: scale(1.1);
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 背景层 */
+        .game-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+        }
+
+        .background-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            filter: blur(1px);
+            display: block;
+        }
+
+        .background-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #fff;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+            z-index: 2;
+        }
+
+        /* 角色立绘层 */
+        .character-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .character-container {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            width: 400px;
+            height: 90%;
+            z-index: 1;
+        }
+
+        .character-sprite {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            background: transparent;
+            filter: drop-shadow(3px 5px 10px rgba(0, 0, 0, 0.5));
+            animation: character-enter-from-right 0.8s ease-out;
+            transition: all 0.3s ease;
+        }
+
+        .character-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 10px;
+        }
+
+        /* UI层 */
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        /* 底部UI区域 */
+        .bottom-ui {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            flex-direction: column;
+            pointer-events: none;
+            padding: 20px;
+        }
+
+        /* 对话框 */
+        .dialogue-box {
+            width: 100%;
+            pointer-events: auto;
+            margin-bottom: 15px;
+            animation: dialogue-slide-up 0.5s ease-out;
+        }
+
+        .character-name-box {
+            background: transparent;
+            color: #000;
+            padding: 10px 25px;
+            border-radius: 20px 20px 0 0;
+            font-weight: bold;
+            font-size: 16px;
+            display: inline-block;
+            margin-bottom: -2px;
+            box-shadow: none;
+            position: relative;
+            z-index: 1;
+            border: 3px solid #ff69b4;
+            border-bottom: none;
+        }
+
+        .dialogue-content {
+            background: transparent;
+            backdrop-filter: none;
+            border-radius: 0 25px 25px 25px;
+            padding: 30px 35px;
+            box-shadow: none;
+            position: relative;
+            min-height: 140px;
+            border: 3px solid #ff69b4;
+        }
+
+        .dialogue-text {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #000;
+            min-height: 80px;
+            word-wrap: break-word;
+            position: relative;
+            font-weight: bold;
+        }
+
+        .dialogue-indicator {
+            position: absolute;
+            bottom: 15px;
+            right: 25px;
+            color: #000;
+            font-size: 24px;
+            animation: indicator-pulse 2s infinite;
+        }
+
+        /* 聊天历史记录框 */
+        .chat-history-area {
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-bottom: 10px;
+            pointer-events: auto;
+        }
+
+        .chat-history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: transparent;
+            border: 3px solid #ff69b4;
+            border-bottom: none;
+            border-radius: 15px 15px 0 0;
+            padding: 8px 15px;
+            font-weight: bold;
+            color: #000;
+            font-size: 14px;
+        }
+
+        .history-toggle-btn {
+            background: transparent;
+            border: none;
+            color: #ff69b4;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 2px 5px;
+            border-radius: 3px;
+            transition: all 0.3s ease;
+        }
+
+        .chat-history-content {
+            background: transparent;
+            border: 3px solid #ff69b4;
+            border-top: none;
+            border-radius: 0 0 15px 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+        }
+
+        .chat-history-content.collapsed {
+            max-height: 0;
+            border: none;
+            overflow: hidden;
+        }
+
+        .chat-history-messages {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .history-message {
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            line-height: 1.4;
+            word-wrap: break-word;
+            max-width: 85%;
+            font-weight: bold;
+        }
+
+        .history-message.player {
+            align-self: flex-end;
+            background: rgba(255, 105, 180, 0.2);
+            color: #000;
+            border: 1px solid #ff69b4;
+        }
+
+        .history-message.ai {
+            align-self: flex-start;
+            background: rgba(0, 0, 0, 0.1);
+            color: #000;
+            border: 1px solid #666;
+        }
+
+        /* 输入区域 */
+        .input-area {
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            pointer-events: auto;
+        }
+
+        .input-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: transparent;
+            backdrop-filter: none;
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: none;
+            border: 3px solid #ff69b4;
+        }
+
+        #player-input {
+            width: 100%;
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: 15px;
+            resize: none;
+            min-height: 60px;
+            max-height: 120px;
+            font-family: inherit;
+            color: #000;
+            line-height: 1.5;
+            font-weight: bold;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            align-self: flex-end;
+            box-shadow: 0 4px 15px rgba(255, 154, 158, 0.4);
+        }
+
+        /* 游戏菜单 */
+        .game-menu {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            display: flex;
+            gap: 12px;
+            pointer-events: auto;
+        }
+
+        .menu-btn {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 10px 18px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        /* 选择区域 */
+        .choice-area {
+            position: absolute;
+            bottom: 220px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 800px;
+            pointer-events: auto;
+        }
+
+        .choice-btn {
+            display: block;
+            width: 100%;
+            background: transparent;
+            backdrop-filter: none;
+            border: 3px solid #ff69b4;
+            border-radius: 18px;
+            padding: 18px 30px;
+            margin-bottom: 12px;
+            font-size: 16px;
+            color: #000;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            box-shadow: none;
+            font-weight: bold;
+        }
+
+        /* 动画效果 */
+        @keyframes character-enter-from-right {
+            0% {
+                transform: translateX(100px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes dialogue-slide-up {
+            0% {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes indicator-pulse {
+            0%, 100% { 
+                opacity: 0.6; 
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 1; 
+                transform: scale(1.1);
+            }
+        }
+
+        /* GM菜单样式 */
+        .gm-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .gm-menu-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .gm-menu h3 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 24px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .gm-section {
+            margin-bottom: 25px;
+        }
+
+        .gm-section h4 {
+            color: #555;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .gm-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .gm-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .gm-close-btn {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 主菜单界面 -->
+        <div id="main-menu" class="main-menu-screen active">
+            <div class="canvas-bg"></div>
+            <div class="noise"></div>
+            <div class="scanline"></div>
+
+            <div class="wrapper">
+                <header class="header">
+                    <h1 class="title-main">AI Galgame</h1>
+                    <p class="title-sub">The Art of Agent Intelligence</p>
+                </header>
+
+                <nav class="menu">
+                    <button id="btn-new-game" class="nav-item">新建游戏 / INITIALIZE</button>
+                    <button id="btn-continue-game" class="nav-item" disabled>继续游戏 / RESUME</button>
+                    <button id="btn-load-game" class="nav-item">历史记录 / ARCHIVES</button>
+                    <button id="btn-game-settings" class="nav-item">游戏设定 / SETTINGS</button>
+                    <button id="btn-exit-game" class="nav-item">退出游戏 / EXIT</button>
+                </nav>
+            </div>
+
+            <div class="decoration">
+                <div class="dec-line">Ourane</div>
+                <div class="dec-line">JS SDK Playkit.ai</div>
+                <div class="dec-line" id="clock">00:00:00</div>
+            </div>
+        </div>
+
+        <!-- 角色创建界面 -->
+        <div id="character-setup" class="setup-screen">
+            <div class="canvas-bg"></div>
+            <div class="noise"></div>
+            <div class="setup-scanline"></div>
+
+            <div class="setup-wrapper">
+                <header>
+                    <div class="protocol-title">NEURAL CONNECT PROTOCOL: INITIALIZATION</div>
+                    <h1 class="setup-main-title" id="page-title">创建你的角色</h1>
+                    <div class="step-bar">
+                        <span class="step-label" id="step-info">STEP 01: 用户身份登记</span>
+                        <div class="progress-track">
+                            <div class="progress-fill" id="p-bar"></div>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- 玩家角色创建 -->
+                <div id="step-1" class="step-container active">
+                    <form id="player-form">
+                        <div class="panel-side">
+                            <div class="setup-form-group">
+                                <label>昵称 / NICKNAME <span>*</span></label>
+                                <input type="text" id="player-nickname" name="nickname" placeholder="请输入昵称" required>
+                                <div class="error-message" id="nickname-error"></div>
+                            </div>
+                            <div class="setup-form-group">
+                                <label>身份 / IDENTITY <span>*</span></label>
+                                <input type="text" id="player-identity" name="identity" placeholder="例如：调查员、学生" required>
+                                <div class="error-message" id="identity-error"></div>
+                            </div>
+                            <div class="setup-form-group">
+                                <label>性格 / CHARACTER <span>*</span></label>
+                                <input type="text" id="player-character" name="character" placeholder="例如：内敛、毒舌" required>
+                                <div class="error-message" id="character-error"></div>
+                            </div>
+                            <div class="setup-form-group">
+                                <label>特质 / TRAITS <span>*</span></label>
+                                <input type="text" id="player-traits" name="traits" placeholder="独特的能力或习惯" required>
+                                <div class="error-message" id="traits-error"></div>
+                            </div>
+                            <div class="setup-form-group">
+                                <label>性别 / GENDER <span>*</span></label>
+                                <div class="setup-gender-row">
+                                    <button type="button" class="setup-gender-btn" data-value="male">男</button>
+                                    <button type="button" class="setup-gender-btn" data-value="female">女</button>
+                                    <button type="button" class="setup-gender-btn" data-value="other">其他</button>
+                                </div>
+                                <input type="hidden" id="player-gender" name="gender" required>
+                                <div class="error-message" id="gender-error"></div>
+                            </div>
+                        </div>
+                        <div class="panel-main">
+                            <div class="setup-form-group">
+                                <label>人设 / PERSONALITY <span>*</span></label>
+                                <textarea id="player-personality" name="personality" placeholder="描述你的角色设定..." required></textarea>
+                                <div class="error-message" id="personality-error"></div>
+                            </div>
+                            <div class="setup-form-group">
+                                <label>世界观 / WORLDVIEW <span>*</span></label>
+                                <textarea id="player-background" name="background" placeholder="描述你所处的时空背景..." required></textarea>
+                                <div class="error-message" id="background-error"></div>
+                            </div>
+                            <div class="setup-actions">
+                                <button type="submit" class="btn-primary">下一步：配置 AI 角色</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- AI角色创建 -->
+                <div id="step-2" class="step-container">
+                    <form id="ai-form">
+                        <div class="panel-side">
+                            <div class="ai-visual-frame disabled" id="ai-avatar-gen">
+                                <div class="scanner-line"></div>
+                                <div class="gen-status" id="gen-status">需要填写信息</div>
+                                <div id="ai-image-placeholder">
+                                    <div class="gen-tips"><strong>点击生成 AI 形象</strong><br>神经元连接就绪...</div>
+                                </div>
+                                <div id="ai-image-loading">
+                                    <div class="loading-spinner"></div>
+                                    <span style="color: rgba(255,105,180,0.8); font-size: 12px;">正在生成...</span>
+                                </div>
+                                <img id="ai-preview-image" src="" alt="AI预览">
+                            </div>
+                            <div class="setup-form-group">
+                                <label>AI 昵称 / AI NICKNAME <span>*</span></label>
+                                <input type="text" id="ai-nickname" name="nickname" placeholder="给 AI 起个名字" required>
+                                <div class="error-message" id="ai-nickname-error"></div>
+                            </div>
+                            <div class="setup-form-group">
+                                <label>性别 / GENDER <span>*</span></label>
+                                <div class="setup-gender-row">
+                                    <button type="button" class="setup-gender-btn" data-value="male">男</button>
+                                    <button type="button" class="setup-gender-btn" data-value="female">女</button>
+                                    <button type="button" class="setup-gender-btn" data-value="other">其他</button>
+                                </div>
+                                <input type="hidden" id="ai-gender" name="gender" required>
+                                <div class="error-message" id="ai-gender-error"></div>
+                            </div>
+                        </div>
+                        <div class="panel-main">
+                            <div class="setup-form-group">
+                                <label>设定（决定回复效果）<span>*</span></label>
+                                <textarea id="ai-settings" name="settings" placeholder="描述 AI 的性格倾向、说话方式..." required></textarea>
+                                <div class="error-message" id="settings-error"></div>
+                            </div>
+                            <div class="setup-form-group">
+                                <label>外观描述/穿搭风格 <span>*</span></label>
+                                <textarea id="ai-appearance" name="appearance" class="short" placeholder="例如：银发蓝瞳，穿着黑色燕尾服..." required></textarea>
+                                <div class="error-message" id="appearance-error"></div>
+                            </div>
+                            <div class="setup-form-group">
+                                <label>开场白 / OPENING <span>*</span></label>
+                                <input type="text" id="ai-opening" name="opening" placeholder="AI 见你说的第一句话..." required>
+                                <div class="error-message" id="opening-error"></div>
+                            </div>
+                            <div class="setup-actions">
+                                <button type="button" class="btn-back" id="back-to-step1">返回上一步</button>
+                                <button type="submit" class="btn-primary">建立连接 / START GAME</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 游戏主界面 -->
+            <div id="game-main" class="game-screen">
+                <!-- 背景层 -->
+                <div class="game-background">
+                    <img id="background-image" class="background-image" src="" alt="场景背景" style="display: none;">
+                    <div id="background-loading" class="background-loading" style="display: none;">
+                        <div class="loading-spinner"></div>
+                        <p>正在生成场景背景...</p>
+                    </div>
+                </div>
+
+                <!-- 角色立绘层 -->
+                <div class="character-layer">
+                    <div id="character-image-container" class="character-container">
+                        <img id="character-image" src="" alt="AI角色" class="character-sprite" style="display: none;">
+                        <div id="image-loading" class="character-loading" style="display: none;">
+                            <div class="loading-spinner"></div>
+                            <p>正在生成角色形象...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- UI层 -->
+                <div class="ui-layer">
+                    <!-- 选择按钮区域 -->
+                    <div class="choice-area" id="choice-area" style="display: none;">
+                        <!-- 动态生成选择按钮 -->
+                    </div>
+
+                    <!-- 底部UI区域 -->
+                    <div class="bottom-ui">
+                        <!-- 对话框 - 主要显示区域 -->
+                        <div class="dialogue-box">
+                            <!-- 角色名字显示 -->
+                            <div id="character-name" class="character-name-box">
+                                <span id="character-name-text">夏栀</span>
+                            </div>
+                            
+                            <!-- 对话文本区域 -->
+                            <div class="dialogue-content">
+                                <div id="dialogue-text" class="dialogue-text"></div>
+                                <div class="dialogue-indicator">▼</div>
+                            </div>
+                        </div>
+
+                        <!-- 底部控制区域 -->
+                        <div class="bottom-controls">
+                            <!-- 聊天历史记录框 -->
+                            <div class="chat-history-area" id="chat-history-area">
+                                <div class="chat-history-header">
+                                    <span>聊天记录</span>
+                                    <button id="toggle-history" class="history-toggle-btn">▲</button>
+                                </div>
+                                <div class="chat-history-content" id="chat-history-content">
+                                    <div class="chat-history-messages" id="chat-history-messages">
+                                        <!-- 历史消息将在这里显示 -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 输入区域 -->
+                            <div class="input-area" id="input-area">
+                                <div class="input-container">
+                                    <textarea id="player-input" placeholder="输入你想说的话..." maxlength="500"></textarea>
+                                    <button id="stop-tts" class="control-btn" title="停止语音">🔇</button>
+                                    <button id="send-message" class="send-btn">发送</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 游戏菜单 -->
+                    <div class="game-menu">
+                        <button class="menu-btn" id="menu-save">保存</button>
+                        <button class="menu-btn" id="menu-load">读取</button>
+                        <button class="menu-btn" id="menu-config">设置</button>
+                        <button class="menu-btn" id="menu-exit">退出</button>
+                    </div>
+                </div>
+
+                <!-- GM调试菜单 - 简化版本 -->
+                <div id="gm-menu" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 999999; font-family: Arial, sans-serif;">
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 10px; padding: 20px; max-width: 600px; width: 90%; max-height: 80%; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                        <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #007bff; padding-bottom: 10px;">
+                            <h2 style="margin: 0; color: #333;">GM调试菜单</h2>
+                            <p style="margin: 5px 0 0 0; color: #666; font-size: 12px;">按F3或点击"设置"按钮打开</p>
+                        </div>
+                        
+                        <!-- 角色位置调整工具 -->
+                        <div style="margin-bottom: 20px;">
+                            <h3 style="color: #555; margin-bottom: 10px;">🎯 角色位置调整工具</h3>
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 2px solid #007bff;">
+                                <!-- 容器尺寸调整 -->
+                                <div style="margin-bottom: 15px;">
+                                    <h4 style="margin: 0 0 8px 0; color: #333; font-size: 14px;">📦 容器尺寸</h4>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                        <div>
+                                            <label style="display: block; font-size: 12px; color: #666; margin-bottom: 3px;">宽度 (px)</label>
+                                            <input type="range" id="container-width" min="200" max="800" value="450" 
+                                                style="width: 100%; margin-bottom: 3px;">
+                                            <span id="container-width-value" style="font-size: 12px; color: #007bff; font-weight: bold;">450px</span>
+                                        </div>
+                                        <div>
+                                            <label style="display: block; font-size: 12px; color: #666; margin-bottom: 3px;">高度 (px)</label>
+                                            <input type="range" id="container-height" min="200" max="800" value="550" 
+                                                style="width: 100%; margin-bottom: 3px;">
+                                            <span id="container-height-value" style="font-size: 12px; color: #007bff; font-weight: bold;">550px</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 位置调整 -->
+                                <div style="margin-bottom: 15px;">
+                                    <h4 style="margin: 0 0 8px 0; color: #333; font-size: 14px;">📍 容器位置</h4>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                        <div>
+                                            <label style="display: block; font-size: 12px; color: #666; margin-bottom: 3px;">右边距 (px)</label>
+                                            <input type="range" id="container-right" min="0" max="200" value="20" 
+                                                style="width: 100%; margin-bottom: 3px;">
+                                            <span id="container-right-value" style="font-size: 12px; color: #007bff; font-weight: bold;">20px</span>
+                                        </div>
+                                        <div>
+                                            <label style="display: block; font-size: 12px; color: #666; margin-bottom: 3px;">底边距 (px)</label>
+                                            <input type="range" id="container-bottom" min="50" max="400" value="150" 
+                                                style="width: 100%; margin-bottom: 3px;">
+                                            <span id="container-bottom-value" style="font-size: 12px; color: #007bff; font-weight: bold;">150px</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 图像缩放 -->
+                                <div style="margin-bottom: 15px;">
+                                    <h4 style="margin: 0 0 8px 0; color: #333; font-size: 14px;">🔍 图像缩放</h4>
+                                    <div>
+                                        <label style="display: block; font-size: 12px; color: #666; margin-bottom: 3px;">缩放比例</label>
+                                        <input type="range" id="image-scale" min="0.2" max="2.0" step="0.05" value="0.65" 
+                                            style="width: 100%; margin-bottom: 3px;">
+                                        <span id="image-scale-value" style="font-size: 12px; color: #007bff; font-weight: bold;">0.65x</span>
+                                    </div>
+                                </div>
+
+                                <!-- 控制按钮 -->
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 15px;">
+                                    <button id="reset-position" style="background: #6c757d; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">重置默认</button>
+                                    <button id="copy-settings" style="background: #28a745; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">复制参数</button>
+                                    <button id="apply-settings" style="background: #007bff; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">应用设置</button>
+                                </div>
+
+                                <!-- 参数显示 -->
+                                <div style="margin-top: 10px; padding: 8px; background: #e9ecef; border-radius: 4px;">
+                                    <div style="font-size: 11px; color: #495057; font-family: monospace;" id="current-params">
+                                        容器: 450×550px | 位置: right:20px bottom:150px | 缩放: 0.65x
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <h3 style="color: #555; margin-bottom: 10px;">自定义图像生成</h3>
+                            <div style="margin-bottom: 10px;">
+                                <label style="display: block; margin-bottom: 5px; color: #333; font-weight: bold;">自定义提示词:</label>
+                                <textarea id="gm-custom-prompt" placeholder="输入自定义提示词，例如：happy expression, school uniform, cherry blossoms background" 
+                                    style="width: 100%; height: 60px; padding: 8px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; resize: vertical; box-sizing: border-box;"></textarea>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                                <button id="gm-custom-character" style="background: #007bff; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-size: 14px;">生成自定义角色</button>
+                                <button id="gm-custom-background" style="background: #28a745; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-size: 14px;">生成自定义背景</button>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                                <button id="gm-preset-happy" style="background: #ffc107; color: black; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">开心表情</button>
+                                <button id="gm-preset-sad" style="background: #6c757d; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">难过表情</button>
+                                <button id="gm-preset-school" style="background: #17a2b8; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">学校场景</button>
+                                <button id="gm-preset-park" style="background: #28a745; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">公园场景</button>
+                            </div>
+                        </div>
+
+                        <!-- 图像管理 -->
+                        <div style="margin-bottom: 20px;">
+                            <h3 style="color: #555; margin-bottom: 10px;">图像管理</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                                <button id="gm-regenerate-character" style="background: #dc3545; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-size: 14px;">重新生成角色</button>
+                                <button id="gm-regenerate-background" style="background: #fd7e14; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-size: 14px;">重新生成背景</button>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                                <button id="gm-auto-chroma" style="background: #6f42c1; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">智能抠图</button>
+                                <button id="gm-cache-stats" style="background: #20c997; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">缓存统计</button>
+                                <button id="gm-clear-cache" style="background: #e83e8c; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">清空缓存</button>
+                            </div>
+                        </div>
+
+                        <!-- 角色动画测试 -->
+                        <div style="margin-bottom: 20px;">
+                            <h3 style="color: #555; margin-bottom: 10px;">角色动画测试</h3>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                                <button id="gm-anim-enter-right" style="background: #007bff; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">右侧进场</button>
+                                <button id="gm-anim-enter-left" style="background: #007bff; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">左侧进场</button>
+                                <button id="gm-anim-fade-in" style="background: #007bff; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">淡入</button>
+                                <button id="gm-anim-slide-up" style="background: #007bff; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">上滑进场</button>
+                                <button id="gm-anim-exit-right" style="background: #6c757d; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">右侧退场</button>
+                                <button id="gm-anim-exit-left" style="background: #6c757d; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">左侧退场</button>
+                            </div>
+                        </div>
+
+                        <!-- 抠图效果测试 -->
+                        <div style="margin-bottom: 20px;">
+                            <h3 style="color: #555; margin-bottom: 10px;">抠图效果测试</h3>
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                                <button data-chroma="none" style="background: #6c757d; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">无抠图</button>
+                                <button data-chroma="simple-chroma" style="background: #17a2b8; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">简单抠图</button>
+                                <button data-chroma="advanced-filter" style="background: #28a745; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">高级滤镜</button>
+                                <button data-chroma="super-canvas" style="background: #dc3545; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">超级抠图</button>
+                            </div>
+                        </div>
+
+                        <!-- 状态信息 -->
+                        <div style="margin-bottom: 20px;">
+                            <h3 style="color: #555; margin-bottom: 10px;">状态信息</h3>
+                            <div style="background: #f8f9fa; padding: 10px; border-radius: 5px; font-size: 14px;">
+                                <div>抠图模式: <span id="current-chroma-mode" style="font-weight: bold; color: #007bff;">super-canvas</span></div>
+                                <div>角色图像: <span id="character-image-status" style="font-weight: bold; color: #28a745;">未加载</span></div>
+                                <div>背景图像: <span id="background-image-status" style="font-weight: bold; color: #28a745;">未加载</span></div>
+                            </div>
+                        </div>
+
+                        <!-- 关闭按钮 -->
+                        <button id="gm-close" style="background: #dc3545; color: white; border: none; padding: 12px 24px; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%;">关闭 (F2)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 加载遮罩 -->
+        <div id="loading-overlay" class="loading-overlay" style="display: none;">
+            <div class="loading-content">
+                <div class="spinner"></div>
+                <p id="loading-text">正在初始化...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入PlayKit SDK (本地版本) -->
+    <script src="node_modules/playkit-sdk/dist/playkit-sdk.umd.js"></script>
+    
+    <!-- 引入游戏脚本 -->
+    <script src="js/models/CharacterProfile.js"></script>
+    <script src="js/managers/StorageManager.js"></script>
+    <script src="js/systems/DialogueSystem.js"></script>
+    <script src="js/systems/ImageGenerationSystem.js"></script>
+    <script src="js/systems/TTSSystem.js"></script>
+    <script src="js/systems/BGMSystem.js"></script>
+    <script src="js/managers/GameSessionManager.js"></script>
+    <script src="js/main.js"></script>
+    
+    <!-- 初始化脚本 -->
+    <script>
+        // 动态更新时钟
+        function updateClock() {
+            const now = new Date();
+            const clockElement = document.getElementById('clock');
+            if (clockElement) {
+                clockElement.innerText = now.getHours().toString().padStart(2, '0') + ":" + 
+                                        now.getMinutes().toString().padStart(2, '0') + ":" + 
+                                        now.getSeconds().toString().padStart(2, '0');
+            }
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // 调试：检查按钮是否可点击
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded, checking buttons...');
+            const buttons = ['btn-new-game', 'btn-continue-game', 'btn-load-game', 'btn-game-settings', 'btn-exit-game'];
+            buttons.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    console.log(`Button ${id} found:`, btn.style.display);
+                } else {
+                    console.error(`Button ${id} not found!`);
+                }
+            });
+            
+            // 初始化游戏
+            console.log('Initializing AI Galgame...');
+            try {
+                if (typeof AIGalgame !== 'undefined') {
+                    window.game = new AIGalgame();
+                } else {
+                    console.error('AIGalgame class not found!');
+                }
+            } catch (error) {
+                console.error('Failed to initialize game:', error);
+            }
+        });
+    </script>
+</body>
+</html>

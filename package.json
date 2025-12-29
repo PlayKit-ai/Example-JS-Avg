@@ -1,0 +1,26 @@
+{
+  "name": "ai-galgame",
+  "version": "1.0.0",
+  "description": "AI原生Galgame with TTS support",
+  "main": "tts-proxy-server.js",
+  "scripts": {
+    "start": "node tts-proxy-server.js",
+    "dev": "node tts-proxy-server.js",
+    "install-deps": "npm install express cors node-fetch",
+    "test": "node -e \"console.log('Node.js is working!')\""
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "node-fetch": "^2.6.7",
+    "playkit-sdk": "^1.2.1-beta.1"
+  },
+  "keywords": [
+    "ai",
+    "galgame",
+    "tts",
+    "game"
+  ],
+  "author": "AI Galgame Developer",
+  "license": "MIT"
+}
