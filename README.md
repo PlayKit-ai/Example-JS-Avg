@@ -7,7 +7,7 @@
 ## ✨ 特性
 
 - 🤖 **AI 智能对话** - 基于 Qwen 大模型，角色对话自然流畅
-- 🎨 **实时图像生成** - 动态生成角色立绘和场景背景
+- 🎨 **实时图像生成** - 实时生成角色立绘和场景背景
 - 🎵 **语音合成** - 火山引擎 TTS，支持情感识别
 - 🎼 **BGM 系统** - 背景音乐自动切换，淡入淡出
 - 💾 **存档系统** - 本地存储 + 文件导出
@@ -105,7 +105,7 @@ const TTS_CONFIG = {
 
 - 前端：原生 JavaScript + HTML5 + CSS3
 - AI 对话：PlayKit SDK + Qwen
-- 图像生成：AI Image API
+- 图像生成：PlayKit SDK + gpt-image-1
 - 语音合成：火山引擎 TTS
 - 服务器：Node.js + Express
 
@@ -117,3 +117,4 @@ MIT License
 
 - [PlayKit SDK](https://playkit.ai)
 - [火山引擎](https://www.volcengine.com)
+
