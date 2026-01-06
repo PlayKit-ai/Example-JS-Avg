@@ -8,7 +8,6 @@ class GameSessionManager {
         this.storageManager = new StorageManager();
         this.dialogueSystem = new DialogueSystem(this.storageManager);
         this.imageSystem = imageSystem || new ImageGenerationSystem(this.storageManager);
-        this.ttsSystem = new TTSSystem();
         
         this.gameState = 'initial';
         this.playerProfile = null;
@@ -29,15 +28,6 @@ class GameSessionManager {
             defaultChatModel: 'Qwen3-235B',
             defaultImageModel: 'gpt-image-1',
             debug: true
-        };
-
-        // TTS配置 - 使用本地代理服务器，请填入你自己的配置
-        this.ttsConfig = {
-            appId: 'your-app-id', // 火山引擎APP ID
-            accessKey: 'your-access-key', // 火山引擎Access Token
-            resourceId: 'seed-tts-2.0',
-            apiUrl: 'http://localhost:3001/api/tts',
-            proxyMode: true
         };
     }
 
@@ -89,16 +79,6 @@ class GameSessionManager {
             // 初始化对话系统（使用独立的SDK实例以避免冲突）
             await this.dialogueSystem.initialize(aiProfile, this.sdkConfig);
             
-            // 初始化TTS系统（现在已配置凭证）
-            try {
-                await this.ttsSystem.initialize(this.ttsConfig);
-                this.ttsSystem.setCharacterVoice(aiProfile);
-                console.log('✅ TTS System initialized successfully');
-            } catch (error) {
-                console.warn('⚠️ TTS System initialization failed:', error.message);
-                // TTS初始化失败不影响游戏继续
-            }
-            
             // 设置事件监听器
             this.setupEventListeners();
             
@@ -128,12 +108,6 @@ class GameSessionManager {
     setupEventListeners() {
         // 发送消息按钮
         this.elements.sendButton.addEventListener('click', () => this.handleSendMessage());
-        
-        // 停止TTS按钮
-        const stopTTSButton = document.getElementById('stop-tts');
-        if (stopTTSButton) {
-            stopTTSButton.addEventListener('click', () => this.stopTTS());
-        }
         
         // 输入框回车发送
         this.elements.playerInput.addEventListener('keypress', (e) => {
@@ -214,8 +188,6 @@ class GameSessionManager {
     showSettingsMenu() {
         console.log('showSettingsMenu called - using native dialogs');
         
-        const ttsStatus = this.ttsSystem.isInitialized ? '✅ 已启用' : '❌ 未配置';
-        
         const options = [
             '1. 清除所有缓存',
             '2. 清除图像缓存',
@@ -224,7 +196,6 @@ class GameSessionManager {
             '5. 导出游戏数据',
             '6. 导入游戏数据',
             '7. 界面缩放设置',
-            `8. TTS语音设置 ${ttsStatus}`,
             '0. 关闭设置'
         ].join('\n');
         
@@ -253,9 +224,6 @@ class GameSessionManager {
                 break;
             case '7':
                 this.handleUIScaleSettings();
-                break;
-            case '8':
-                this.handleTTSSettings();
                 break;
             case '0':
                 return;
@@ -439,221 +407,6 @@ class GameSessionManager {
         this.handleUIScaleSettings();
     }
 
-    /**
-     * 处理TTS语音设置
-     */
-    handleTTSSettings() {
-        const ttsStatus = this.ttsSystem.getStatus();
-        const statusText = ttsStatus.isInitialized ? '✅ 已启用' : '❌ 未配置';
-        
-        const options = [
-            `当前状态: ${statusText}`,
-            '',
-            '1. 配置TTS (APP ID & Access Token)',
-            '2. 测试TTS语音',
-            '3. 音量设置',
-            '4. 语速设置',
-            '5. 停止当前播放',
-            '6. TTS状态信息',
-            '',
-            '0. 返回上级菜单'
-        ].join('\n');
-        
-        const choice = prompt('🎵 TTS语音设置\n\n' + options + '\n\n请输入选项编号:');
-        
-        if (!choice) {
-            this.showSettingsMenu();
-            return;
-        }
-        
-        switch(choice.trim()) {
-            case '1':
-                this.handleTTSConfiguration();
-                break;
-            case '2':
-                this.handleTTSTest();
-                break;
-            case '3':
-                this.handleTTSVolumeSettings();
-                break;
-            case '4':
-                this.handleTTSSpeechRateSettings();
-                break;
-            case '5':
-                this.stopTTS();
-                alert('✅ TTS播放已停止');
-                this.handleTTSSettings();
-                break;
-            case '6':
-                this.showTTSStatus();
-                break;
-            case '0':
-                this.showSettingsMenu();
-                return;
-            default:
-                alert('无效选项');
-                this.handleTTSSettings();
-        }
-    }
-
-    /**
-     * 处理TTS配置
-     */
-    handleTTSConfiguration() {
-        const currentAppId = this.ttsConfig.appId || '未配置';
-        const currentAccessKey = this.ttsConfig.accessKey ? '已配置' : '未配置';
-        
-        const info = `当前配置状态:\nAPP ID: ${currentAppId}\nAccess Token: ${currentAccessKey}\n\n请按照以下步骤配置:`;
-        
-        alert(info);
-        
-        const appId = prompt('请输入火山引擎APP ID:');
-        if (!appId) {
-            this.handleTTSSettings();
-            return;
-        }
-        
-        const accessKey = prompt('请输入火山引擎Access Token:');
-        if (!accessKey) {
-            this.handleTTSSettings();
-            return;
-        }
-        
-        // 更新配置
-        this.setTTSConfig({
-            appId: appId.trim(),
-            accessKey: accessKey.trim()
-        });
-        
-        // 尝试初始化TTS
-        const initConfirm = confirm('配置已保存！是否立即初始化TTS系统？');
-        if (initConfirm) {
-            this.initializeTTS().then(() => {
-                alert('✅ TTS系统初始化成功！');
-                this.handleTTSSettings();
-            }).catch((error) => {
-                alert('❌ TTS系统初始化失败：' + error.message);
-                this.handleTTSSettings();
-            });
-        } else {
-            this.handleTTSSettings();
-        }
-    }
-
-    /**
-     * 处理TTS测试
-     */
-    async handleTTSTest() {
-        if (!this.ttsSystem.isInitialized) {
-            alert('❌ TTS系统未初始化，请先配置TTS');
-            this.handleTTSSettings();
-            return;
-        }
-        
-        const testText = prompt('请输入要测试的文本:', '你好，这是TTS语音测试！');
-        if (!testText) {
-            this.handleTTSSettings();
-            return;
-        }
-        
-        try {
-            alert('🎵 开始播放测试语音...');
-            await this.playTTSForMessage(testText);
-            alert('✅ TTS测试完成！');
-        } catch (error) {
-            alert('❌ TTS测试失败：' + error.message);
-        }
-        
-        this.handleTTSSettings();
-    }
-
-    /**
-     * 处理TTS音量设置
-     */
-    handleTTSVolumeSettings() {
-        if (!this.ttsSystem.isInitialized) {
-            alert('❌ TTS系统未初始化');
-            this.handleTTSSettings();
-            return;
-        }
-        
-        const currentVolume = Math.round(this.ttsSystem.volume * 100);
-        const newVolume = prompt(`当前音量: ${currentVolume}%\n\n请输入新的音量 (0-100):`, currentVolume.toString());
-        
-        if (newVolume === null) {
-            this.handleTTSSettings();
-            return;
-        }
-        
-        const volume = parseInt(newVolume);
-        if (isNaN(volume) || volume < 0 || volume > 100) {
-            alert('❌ 无效的音量值，请输入0-100之间的数字');
-            this.handleTTSVolumeSettings();
-            return;
-        }
-        
-        this.setTTSVolume(volume / 100);
-        alert(`✅ TTS音量已设置为 ${volume}%`);
-        this.handleTTSSettings();
-    }
-
-    /**
-     * 处理TTS语速设置
-     */
-    handleTTSSpeechRateSettings() {
-        if (!this.ttsSystem.isInitialized) {
-            alert('❌ TTS系统未初始化');
-            this.handleTTSSettings();
-            return;
-        }
-        
-        const currentRate = this.ttsSystem.audioParams.speech_rate;
-        const rateText = currentRate === 0 ? '正常' : currentRate > 0 ? `${currentRate}% 加速` : `${Math.abs(currentRate)}% 减速`;
-        
-        const newRate = prompt(`当前语速: ${rateText}\n\n请输入新的语速 (-50 到 100):\n-50 = 0.5倍速\n0 = 正常速度\n100 = 2.0倍速`, currentRate.toString());
-        
-        if (newRate === null) {
-            this.handleTTSSettings();
-            return;
-        }
-        
-        const rate = parseInt(newRate);
-        if (isNaN(rate) || rate < -50 || rate > 100) {
-            alert('❌ 无效的语速值，请输入-50到100之间的数字');
-            this.handleTTSSpeechRateSettings();
-            return;
-        }
-        
-        this.setTTSSpeechRate(rate);
-        const newRateText = rate === 0 ? '正常' : rate > 0 ? `${rate}% 加速` : `${Math.abs(rate)}% 减速`;
-        alert(`✅ TTS语速已设置为 ${newRateText}`);
-        this.handleTTSSettings();
-    }
-
-    /**
-     * 显示TTS状态信息
-     */
-    showTTSStatus() {
-        const status = this.ttsSystem.getStatus();
-        
-        const statusInfo = [
-            '🎵 TTS系统状态信息',
-            '',
-            `初始化状态: ${status.isInitialized ? '✅ 已初始化' : '❌ 未初始化'}`,
-            `播放状态: ${status.isPlaying ? '🔊 播放中' : '🔇 未播放'}`,
-            `处理状态: ${status.isProcessing ? '⏳ 处理中' : '✅ 空闲'}`,
-            `播放队列: ${status.queueLength} 个音频`,
-            `当前发音人: ${status.currentSpeaker}`,
-            `音量: ${Math.round(status.volume * 100)}%`,
-            `语速: ${status.speechRate === 0 ? '正常' : status.speechRate > 0 ? `+${status.speechRate}%` : `${status.speechRate}%`}`,
-            `情感: ${status.emotion || '无'}`,
-            '',
-            '点击确定返回设置菜单'
-        ].join('\n');
-        
-        alert(statusInfo);
-        this.handleTTSSettings();
-    }
     applyUIScale(scale) {
         const gameMain = document.getElementById('game-main');
         if (gameMain) {
@@ -713,9 +466,6 @@ class GameSessionManager {
                 async (completeReply) => {
                     // 显示完整的AI回复
                     this.showMessage(completeReply, 'ai');
-                    
-                    // 播放TTS语音
-                    this.playTTSForMessage(completeReply);
                     
                     // 回复完成后，尝试生成新图像
                     await this.handleImageGeneration(completeReply);
@@ -966,170 +716,6 @@ class GameSessionManager {
 
 
 
-    /**
-     * 播放消息的TTS语音
-     * @param {string} message - 要播放的消息
-     */
-    /**
-     * 播放消息的TTS语音 - 增强版本
-     * @param {string} message - 要播放的消息
-     */
-    async playTTSForMessage(message) {
-        if (!this.ttsSystem.isInitialized) {
-            console.log('TTS System not initialized, skipping voice synthesis');
-            return;
-        }
-
-        // 防止重复播放相同内容
-        if (this._lastTTSMessage === message) {
-            console.warn('⚠️ Duplicate TTS request for same message, ignoring');
-            return;
-        }
-        this._lastTTSMessage = message;
-
-        // 防止并发播放
-        if (this._isTTSPlaying) {
-            console.warn('⚠️ TTS is already playing, stopping previous and starting new');
-            this.ttsSystem.stopCurrentAudio();
-        }
-        this._isTTSPlaying = true;
-
-        try {
-            console.log('🎵 Starting TTS playback for message:', message.substring(0, 50) + '...');
-            
-            // 根据角色性格调整TTS参数
-            this.ttsSystem.adjustVoiceForCharacter(this.aiProfile);
-            
-            // 智能设置情感 - 使用增强版本
-            const detectedEmotion = this.ttsSystem.setEmotionFromText(message);
-            if (detectedEmotion) {
-                console.log(`🎭 Detected emotion: ${detectedEmotion} for TTS`);
-            }
-
-            // 根据消息长度和内容调整语速
-            this.adjustTTSForMessage(message);
-
-            // 合成并播放语音
-            await this.ttsSystem.synthesizeAndPlay(message);
-            
-            console.log('✅ TTS playback completed');
-            
-        } catch (error) {
-            console.error('Failed to play TTS for message:', error);
-            // TTS播放失败不影响游戏继续
-        } finally {
-            this._isTTSPlaying = false;
-            // 延迟清除消息记录，避免快速重复播放
-            setTimeout(() => {
-                this._lastTTSMessage = null;
-            }, 1000);
-        }
-    }
-
-    /**
-     * 根据消息内容调整TTS参数
-     * @param {string} message - 消息内容
-     */
-    adjustTTSForMessage(message) {
-        // 根据消息长度调整语速
-        if (message.length > 50) {
-            // 长消息稍微加快语速
-            this.ttsSystem.setSpeechRate(this.ttsSystem.audioParams.speech_rate + 5);
-        } else if (message.length < 10) {
-            // 短消息稍微放慢语速，更有感情
-            this.ttsSystem.setSpeechRate(this.ttsSystem.audioParams.speech_rate - 5);
-        }
-
-        // 根据标点符号调整语调
-        if (message.includes('！！') || message.includes('？？')) {
-            // 强烈情感，提高音量
-            this.ttsSystem.audioParams.loudness_rate = Math.min(20, this.ttsSystem.audioParams.loudness_rate + 10);
-        } else if (message.includes('...') || message.includes('。。。')) {
-            // 犹豫或沉思，降低音量和语速
-            this.ttsSystem.audioParams.loudness_rate = Math.max(-20, this.ttsSystem.audioParams.loudness_rate - 5);
-            this.ttsSystem.setSpeechRate(this.ttsSystem.audioParams.speech_rate - 10);
-        }
-
-        // 根据语气词调整
-        if (message.includes('呢~') || message.includes('哦~')) {
-            // 温柔语气，稍微降低语速
-            this.ttsSystem.setSpeechRate(this.ttsSystem.audioParams.speech_rate - 5);
-        } else if (message.includes('哈哈') || message.includes('嘿嘿')) {
-            // 开心语气，稍微提高语速
-            this.ttsSystem.setSpeechRate(this.ttsSystem.audioParams.speech_rate + 8);
-        }
-    }
-
-    /**
-     * 设置TTS配置
-     * @param {Object} config - TTS配置
-     */
-    setTTSConfig(config) {
-        this.ttsConfig = {
-            ...this.ttsConfig,
-            ...config
-        };
-        
-        console.log('TTS config updated:', this.ttsConfig);
-    }
-
-    /**
-     * 初始化TTS系统（用于运行时配置）
-     */
-    async initializeTTS() {
-        if (!this.ttsConfig.appId || !this.ttsConfig.accessKey) {
-            throw new Error('TTS配置不完整：缺少APP ID或Access Token');
-        }
-
-        try {
-            await this.ttsSystem.initialize(this.ttsConfig);
-            if (this.aiProfile) {
-                this.ttsSystem.setCharacterVoice(this.aiProfile);
-            }
-            console.log('TTS System initialized successfully');
-            return true;
-        } catch (error) {
-            console.error('Failed to initialize TTS:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * 停止TTS播放
-     */
-    stopTTS() {
-        console.log('🛑 Manual TTS stop requested');
-        
-        if (this.ttsSystem) {
-            this.ttsSystem.stopCurrentAudio();
-        }
-        
-        // 清理播放状态
-        this._isTTSPlaying = false;
-        this._lastTTSMessage = null;
-        
-        console.log('✅ TTS stopped manually');
-    }
-
-    /**
-     * 设置TTS音量
-     * @param {number} volume - 音量 [0-1]
-     */
-    setTTSVolume(volume) {
-        if (this.ttsSystem) {
-            this.ttsSystem.setVolume(volume);
-        }
-    }
-
-    /**
-     * 设置TTS语速
-     * @param {number} speechRate - 语速 [-50, 100]
-     */
-    setTTSSpeechRate(speechRate) {
-        if (this.ttsSystem) {
-            this.ttsSystem.setSpeechRate(speechRate);
-        }
-    }
     fixImageUrl(imageUrl) {
         if (!imageUrl) return imageUrl;
         
@@ -1359,9 +945,6 @@ class GameSessionManager {
                 // 确保开场白文本正确编码
                 const cleanOpening = this.aiProfile.opening.trim();
                 this.showMessage(cleanOpening, 'ai');
-                
-                // 播放开场白的TTS
-                this.playTTSForMessage(cleanOpening);
                 
                 // 将开场白添加到对话历史
                 const openingEntry = {
@@ -1785,7 +1368,6 @@ class GameSessionManager {
         try {
             this.dialogueSystem.destroy();
             this.imageSystem.destroy();
-            this.ttsSystem.destroy();
             
             this.gameState = 'initial';
             this.playerProfile = null;

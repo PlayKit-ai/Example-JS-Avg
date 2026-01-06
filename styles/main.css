@@ -1,0 +1,299 @@
+/**
+ * AI Galgame 主样式文件
+ */
+
+:root {
+    --bg-color: #08080a;
+    --accent-color: #fff;
+    --secondary-color: rgba(255, 255, 255, 0.4);
+    --card-bg: rgba(255, 255, 255, 0.03);
+    --border-color: rgba(255, 255, 255, 0.1);
+    --error: #ff4d4d;
+    --transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--bg-color);
+    font-family: "Optima", "Bodoni 72", "Cinzel", "PingFang SC", serif;
+    color: var(--accent-color);
+}
+
+/* ==================== 主菜单样式 ==================== */
+
+/* 1. 动态流动背景层 */
+.canvas-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -2;
+    background: 
+        radial-gradient(circle at 20% 30%, #1a1a2e 0%, transparent 40%),
+        radial-gradient(circle at 80% 70%, #0f172a 0%, transparent 40%);
+    filter: blur(80px);
+    animation: bgMove 20s infinite alternate;
+}
+
+@keyframes bgMove {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.2) translate(2%, 2%); }
+}
+
+/* 2. 胶片噪点质感层 */
+.noise {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: -1;
+    opacity: 0.04;
+    pointer-events: none;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMjAwIDIwMCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48ZmlsdGVyIGlkPSduJz48ZmVidXJidWxlbmNlIHR5cGU9J2ZyYWN0YWxOb2lzZScgYmFzZUZyZXF1ZW5jeT0nMC42NScgbnVtT2N0YXZlcz0nMycvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIGZpbHRlcj0ndXInLz48L3N2Zz4=');
+}
+
+/* 主菜单界面 */
+.main-menu-screen {
+    display: none;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.main-menu-screen.active {
+    display: block;
+    opacity: 1;
+}
+
+.main-menu-screen.fade-out {
+    opacity: 0;
+}
+
+/* 布局容器 */
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100vh;
+    padding-left: 12%;
+    position: relative;
+    z-index: 10;
+    pointer-events: auto;
+}
+
+/* 标题部分 */
+.header {
+    margin-bottom: 100px;
+}
+
+.title-main {
+    font-size: 64px;
+    font-weight: 200;
+    letter-spacing: 12px;
+    margin-bottom: 10px;
+    opacity: 0.9;
+}
+
+.title-sub {
+    font-size: 12px;
+    letter-spacing: 6px;
+    color: var(--secondary-color);
+    text-transform: uppercase;
+    padding-left: 4px;
+}
+
+/* 菜单部分 */
+.menu {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    pointer-events: auto;
+}
+
+.nav-item {
+    position: relative;
+    text-decoration: none;
+    color: var(--secondary-color);
+    font-size: 16px;
+    letter-spacing: 4px;
+    cursor: pointer;
+    transition: var(--transition);
+    width: fit-content;
+    display: flex;
+    align-items: center;
+    background: none;
+    border: none;
+    font-family: inherit;
+    pointer-events: auto;
+}
+
+/* 悬浮时的圆点标记 */
+.nav-item::before {
+    content: '';
+    position: absolute;
+    left: -30px;
+    width: 4px;
+    height: 4px;
+    background-color: var(--accent-color);
+    border-radius: 50%;
+    opacity: 0;
+    transition: var(--transition);
+    box-shadow: 0 0 10px #fff;
+}
+
+.nav-item:hover {
+    color: var(--accent-color);
+    transform: translateX(10px);
+    letter-spacing: 6px;
+}
+
+.nav-item:hover::before {
+    opacity: 1;
+    left: -20px;
+}
+
+.nav-item:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.nav-item:disabled:hover {
+    color: var(--secondary-color);
+    transform: none;
+    letter-spacing: 4px;
+}
+
+.nav-item:disabled::before {
+    opacity: 0;
+}
+
+/* 右下角装饰文字 */
+.decoration {
+    position: fixed;
+    bottom: 60px;
+    right: 80px;
+    text-align: right;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.dec-line {
+    font-size: 10px;
+    color: rgba(255,255,255,0.15);
+    letter-spacing: 3px;
+    margin-top: 6px;
+    font-family: monospace;
+}
+
+/* 扫描线动画效果 */
+.scanline {
+    width: 100%;
+    height: 100px;
+    z-index: 1;
+    background: linear-gradient(0deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0) 100%);
+    position: absolute;
+    bottom: 100%;
+    animation: scan 8s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes scan {
+    0% { bottom: 100%; }
+    100% { bottom: -100px; }
+}
+
+/* 加载遮罩 */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.loading-content {
+    background: var(--card-bg);
+    padding: 40px;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.loading-content p {
+    color: var(--accent-color);
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    border-top: 4px solid #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .wrapper {
+        padding-left: 8%;
+    }
+    
+    .title-main {
+        font-size: 48px;
+        letter-spacing: 8px;
+    }
+    
+    .nav-item {
+        font-size: 14px;
+    }
+    
+    .decoration {
+        bottom: 40px;
+        right: 40px;
+    }
+    
+    .main-container {
+        padding: 20px 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .title-main {
+        font-size: 36px;
+        letter-spacing: 6px;
+    }
+    
+    .menu {
+        gap: 30px;
+    }
+    
+    .decoration {
+        bottom: 20px;
+        right: 20px;
+    }
+    
+    .dec-line {
+        font-size: 8px;
+    }
+}
