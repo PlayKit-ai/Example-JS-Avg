@@ -68,10 +68,13 @@ npm install
 this.sdkConfig = {
     gameId: 'your-game-id',
     developerToken: 'your-token',
+    baseURL: 'https://lab-staging.playkit.ai',
     defaultChatModel: 'Qwen3-235B',
     defaultImageModel: 'gpt-image-1'
 };
 ```
+
+> ⚠️ 注意：SDK 通过 CDN 引入，无需 `npm install` 即可运行。`package.json` 中的依赖仅作参考。
 
 ## 🎮 游戏玩法
 

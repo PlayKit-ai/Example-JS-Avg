@@ -25,6 +25,7 @@ class GameSessionManager {
         this.sdkConfig = {
             gameId: 'your-game-id',
             developerToken: 'your-developer-token',
+            baseURL: 'https://lab-staging.playkit.ai',
             defaultChatModel: 'Qwen3-235B',
             defaultImageModel: 'gpt-image-1',
             debug: true
