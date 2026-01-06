@@ -985,8 +985,8 @@ class AIGalgame {
                 
                 this.imageSystem = new ImageGenerationSystem(this.storageManager);
                 await this.imageSystem.initialize({
-                    gameId: 'a10a2537-9f64-4d6b-9a49-fbd743d87393',
-                    developerToken: 'dev-c9303a17-0835-4a5c-b6ea-83c8d2f8a8c0',
+                    gameId: 'your-game-id',
+                    developerToken: 'your-developer-token',
                     baseURL: 'https://lab-staging.playkit.ai',
                     defaultChatModel: 'Qwen3-235B',
                     defaultImageModel: 'gpt-image-1',
