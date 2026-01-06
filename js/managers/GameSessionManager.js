@@ -21,10 +21,10 @@ class GameSessionManager {
         this.chatHistory = [];
         this.isHistoryCollapsed = false;
 
-        // SDK配置 - 请填入你自己的配置
+        // SDK配置
         this.sdkConfig = {
-            gameId: 'your-game-id',
-            developerToken: 'your-developer-token',
+            gameId: 'a10a2537-9f64-4d6b-9a49-fbd743d87393',
+            developerToken: 'dev-c9303a17-0835-4a5c-b6ea-83c8d2f8a8c0',
             baseURL: 'https://lab-staging.playkit.ai',
             defaultChatModel: 'Qwen3-235B',
             defaultImageModel: 'gpt-image-1',
