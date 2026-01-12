@@ -33,6 +33,10 @@ class AIGalgame {
                 alert('本地存储不可用，游戏数据将无法保存');
             }
 
+            // 加载并应用游戏设置
+            const settings = this.loadGameSettings();
+            this.applyGameSettings(settings);
+
             // 设置事件监听器
             this.setupEventListeners();
 
@@ -153,6 +157,9 @@ class AIGalgame {
 
         // 角色创建表单事件
         this.setupCharacterCreationEvents();
+
+        // 设置界面事件
+        this.setupSettingsEventListeners();
     }
 
     /**
@@ -768,7 +775,351 @@ class AIGalgame {
      */
     showGameSettings() {
         console.log('Showing game settings...');
-        alert('游戏设定功能开发中...');
+        const modal = document.getElementById('settings-modal');
+        if (modal) {
+            // 加载当前设置到UI
+            this.loadSettingsToUI();
+            modal.classList.add('active');
+        }
+    }
+
+    /**
+     * 隐藏游戏设定
+     */
+    hideGameSettings() {
+        const modal = document.getElementById('settings-modal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    }
+
+    /**
+     * 加载游戏设置
+     */
+    loadGameSettings() {
+        const defaults = {
+            bgmVolume: 50,
+            bgmEnabled: true,
+            sfxVolume: 50,
+            sfxEnabled: true,
+            uiScale: '1.0',
+            textSpeed: 'medium',
+            autoPlayDelay: 3000,
+            autoSaveEnabled: true,
+            // API配置
+            gameId: 'your-game-id',
+            developerToken: 'your-developer-token',
+            baseURL: 'https://playkit.ai',
+            defaultChatModel: 'Qwen3-235B',
+            defaultImageModel: 'gpt-image-1'
+        };
+        
+        try {
+            const saved = localStorage.getItem('ai_galgame_settings');
+            if (saved) {
+                return { ...defaults, ...JSON.parse(saved) };
+            }
+        } catch (e) {
+            console.warn('Failed to load settings:', e);
+        }
+        return defaults;
+    }
+
+    /**
+     * 保存游戏设置
+     */
+    saveGameSettings(settings) {
+        try {
+            localStorage.setItem('ai_galgame_settings', JSON.stringify(settings));
+            console.log('Settings saved:', settings);
+        } catch (e) {
+            console.warn('Failed to save settings:', e);
+        }
+    }
+
+    /**
+     * 应用游戏设置
+     */
+    applyGameSettings(settings) {
+        // 应用BGM设置
+        if (this.bgmSystem) {
+            this.bgmSystem.setVolume(settings.bgmVolume / 100);
+            this.bgmSystem.setMuted(!settings.bgmEnabled);
+        }
+        
+        // 应用界面缩放
+        document.documentElement.style.setProperty('--ui-scale', settings.uiScale);
+        localStorage.setItem('ui-scale', settings.uiScale);
+        
+        // 保存文字速度和自动播放延迟供其他系统使用
+        window.gameSettings = settings;
+    }
+
+    /**
+     * 加载设置到UI
+     */
+    loadSettingsToUI() {
+        const settings = this.loadGameSettings();
+        
+        // 音量滑块
+        const bgmVolume = document.getElementById('setting-bgm-volume');
+        const bgmVolumeValue = document.getElementById('bgm-volume-value');
+        const sfxVolume = document.getElementById('setting-sfx-volume');
+        const sfxVolumeValue = document.getElementById('sfx-volume-value');
+        
+        if (bgmVolume) {
+            bgmVolume.value = settings.bgmVolume;
+            bgmVolumeValue.textContent = settings.bgmVolume + '%';
+        }
+        if (sfxVolume) {
+            sfxVolume.value = settings.sfxVolume;
+            sfxVolumeValue.textContent = settings.sfxVolume + '%';
+        }
+        
+        // 开关
+        const bgmEnabled = document.getElementById('setting-bgm-enabled');
+        const sfxEnabled = document.getElementById('setting-sfx-enabled');
+        const autoSave = document.getElementById('setting-auto-save');
+        
+        if (bgmEnabled) bgmEnabled.checked = settings.bgmEnabled;
+        if (sfxEnabled) sfxEnabled.checked = settings.sfxEnabled;
+        if (autoSave) autoSave.checked = settings.autoSaveEnabled;
+        
+        // 按钮组 - 界面缩放
+        document.querySelectorAll('.scale-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.scale === settings.uiScale);
+        });
+        
+        // 按钮组 - 文字速度
+        document.querySelectorAll('.speed-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.speed === settings.textSpeed);
+        });
+        
+        // 按钮组 - 自动播放延迟
+        document.querySelectorAll('.delay-btn').forEach(btn => {
+            btn.classList.toggle('active', parseInt(btn.dataset.delay) === settings.autoPlayDelay);
+        });
+        
+        // API配置
+        const gameId = document.getElementById('setting-game-id');
+        const token = document.getElementById('setting-token');
+        const baseUrl = document.getElementById('setting-base-url');
+        const chatModel = document.getElementById('setting-chat-model');
+        const imageModel = document.getElementById('setting-image-model');
+        
+        if (gameId) gameId.value = settings.gameId || '';
+        if (token) token.value = settings.developerToken || '';
+        if (baseUrl) baseUrl.value = settings.baseURL || '';
+        if (chatModel) chatModel.value = settings.defaultChatModel || 'Qwen3-235B';
+        if (imageModel) imageModel.value = settings.defaultImageModel || 'gpt-image-1';
+    }
+
+    /**
+     * 从UI收集设置
+     */
+    collectSettingsFromUI() {
+        const settings = {
+            bgmVolume: parseInt(document.getElementById('setting-bgm-volume')?.value || 50),
+            bgmEnabled: document.getElementById('setting-bgm-enabled')?.checked ?? true,
+            sfxVolume: parseInt(document.getElementById('setting-sfx-volume')?.value || 50),
+            sfxEnabled: document.getElementById('setting-sfx-enabled')?.checked ?? true,
+            uiScale: document.querySelector('.scale-btn.active')?.dataset.scale || '1.0',
+            textSpeed: document.querySelector('.speed-btn.active')?.dataset.speed || 'medium',
+            autoPlayDelay: parseInt(document.querySelector('.delay-btn.active')?.dataset.delay || 3000),
+            autoSaveEnabled: document.getElementById('setting-auto-save')?.checked ?? true,
+            // API配置
+            gameId: document.getElementById('setting-game-id')?.value || 'your-game-id',
+            developerToken: document.getElementById('setting-token')?.value || 'your-developer-token',
+            baseURL: document.getElementById('setting-base-url')?.value || 'https://playkit.ai',
+            defaultChatModel: document.getElementById('setting-chat-model')?.value || 'Qwen3-235B',
+            defaultImageModel: document.getElementById('setting-image-model')?.value || 'gpt-image-1'
+        };
+        return settings;
+    }
+
+    /**
+     * 设置设置界面事件监听
+     */
+    setupSettingsEventListeners() {
+        // 关闭按钮
+        const closeBtn = document.getElementById('settings-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this.hideGameSettings());
+        }
+        
+        // 点击遮罩关闭
+        const modal = document.getElementById('settings-modal');
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    this.hideGameSettings();
+                }
+            });
+        }
+        
+        // 音量滑块实时更新
+        const bgmVolume = document.getElementById('setting-bgm-volume');
+        const bgmVolumeValue = document.getElementById('bgm-volume-value');
+        if (bgmVolume) {
+            bgmVolume.addEventListener('input', () => {
+                bgmVolumeValue.textContent = bgmVolume.value + '%';
+                // 实时应用BGM音量
+                if (this.bgmSystem) {
+                    this.bgmSystem.setVolume(bgmVolume.value / 100);
+                }
+            });
+        }
+        
+        const sfxVolume = document.getElementById('setting-sfx-volume');
+        const sfxVolumeValue = document.getElementById('sfx-volume-value');
+        if (sfxVolume) {
+            sfxVolume.addEventListener('input', () => {
+                sfxVolumeValue.textContent = sfxVolume.value + '%';
+            });
+        }
+        
+        // BGM开关实时应用
+        const bgmEnabled = document.getElementById('setting-bgm-enabled');
+        if (bgmEnabled) {
+            bgmEnabled.addEventListener('change', () => {
+                if (this.bgmSystem) {
+                    this.bgmSystem.setMuted(!bgmEnabled.checked);
+                }
+            });
+        }
+        
+        // 按钮组点击
+        document.querySelectorAll('.scale-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.scale-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+        
+        document.querySelectorAll('.speed-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+        
+        document.querySelectorAll('.delay-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.delay-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+        
+        // 恢复默认按钮
+        const resetBtn = document.getElementById('settings-reset');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                const defaults = {
+                    bgmVolume: 50,
+                    bgmEnabled: true,
+                    sfxVolume: 50,
+                    sfxEnabled: true,
+                    uiScale: '1.0',
+                    textSpeed: 'medium',
+                    autoPlayDelay: 3000,
+                    autoSaveEnabled: true,
+                    gameId: 'your-game-id',
+                    developerToken: 'your-developer-token',
+                    baseURL: 'https://playkit.ai',
+                    defaultChatModel: 'Qwen3-235B',
+                    defaultImageModel: 'gpt-image-1'
+                };
+                this.saveGameSettings(defaults);
+                this.loadSettingsToUI();
+                this.applyGameSettings(defaults);
+            });
+        }
+        
+        // 保存按钮
+        const saveBtn = document.getElementById('settings-save');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+                const settings = this.collectSettingsFromUI();
+                this.saveGameSettings(settings);
+                this.applyGameSettings(settings);
+                this.hideGameSettings();
+            });
+        }
+        
+        // 数据管理按钮
+        const clearAllCacheBtn = document.getElementById('btn-clear-all-cache');
+        if (clearAllCacheBtn) {
+            clearAllCacheBtn.addEventListener('click', () => {
+                if (confirm('确定要清除所有缓存吗？这将删除所有本地数据！')) {
+                    this.storageManager.clearAllCache();
+                }
+            });
+        }
+        
+        const clearImageCacheBtn = document.getElementById('btn-clear-image-cache');
+        if (clearImageCacheBtn) {
+            clearImageCacheBtn.addEventListener('click', () => {
+                if (confirm('确定要清除图像缓存吗？')) {
+                    this.storageManager.clearImageCache();
+                    alert('✅ 图像缓存已清除');
+                }
+            });
+        }
+        
+        const clearDialogueBtn = document.getElementById('btn-clear-dialogue');
+        if (clearDialogueBtn) {
+            clearDialogueBtn.addEventListener('click', () => {
+                if (confirm('确定要清除对话历史吗？')) {
+                    this.storageManager.clearDialogueHistory();
+                    alert('✅ 对话历史已清除');
+                }
+            });
+        }
+        
+        // 使用说明按钮
+        const showHelpBtn = document.getElementById('btn-show-help');
+        if (showHelpBtn) {
+            showHelpBtn.addEventListener('click', () => {
+                this.showHelpModal();
+            });
+        }
+        
+        // 使用说明弹窗关闭
+        const helpClose = document.getElementById('help-close');
+        if (helpClose) {
+            helpClose.addEventListener('click', () => {
+                this.hideHelpModal();
+            });
+        }
+        
+        const helpModal = document.getElementById('help-modal');
+        if (helpModal) {
+            helpModal.addEventListener('click', (e) => {
+                if (e.target === helpModal) {
+                    this.hideHelpModal();
+                }
+            });
+        }
+    }
+
+    /**
+     * 显示使用说明
+     */
+    showHelpModal() {
+        const modal = document.getElementById('help-modal');
+        if (modal) {
+            modal.classList.add('active');
+        }
+    }
+
+    /**
+     * 隐藏使用说明
+     */
+    hideHelpModal() {
+        const modal = document.getElementById('help-modal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
     }
 
     /**
@@ -983,13 +1334,15 @@ class AIGalgame {
                     throw new Error('PlayKit SDK未加载，请刷新页面重试');
                 }
                 
+                // 使用保存的设置
+                const settings = this.loadGameSettings();
                 this.imageSystem = new ImageGenerationSystem(this.storageManager);
                 await this.imageSystem.initialize({
-                    gameId: 'your-game-id',
-                    developerToken: 'your-developer-token',
-                    baseURL: 'https://lab-staging.playkit.ai',
-                    defaultChatModel: 'Qwen3-235B',
-                    defaultImageModel: 'gpt-image-1',
+                    gameId: settings.gameId,
+                    developerToken: settings.developerToken,
+                    baseURL: settings.baseURL,
+                    defaultChatModel: settings.defaultChatModel,
+                    defaultImageModel: settings.defaultImageModel,
                     debug: true
                 });
                 console.log('Image generation system initialized successfully');

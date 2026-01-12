@@ -4,6 +4,10 @@
   "description": "AI原生Galgame",
   "main": "index.html",
   "scripts": {
+    "start": "node server.js",
+    "serve": "npx serve -p 8080",
+    "dev": "npm start & npm run serve",
+    "dev:win": "start \"Server\" cmd /k node server.js && start \"Game\" cmd /k npx serve -p 8080",
     "test": "node -e \"console.log('Node.js is working!')\""
   },
   "dependencies": {

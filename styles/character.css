@@ -1,4 +1,4 @@
-/* ==================== 角色图片显示系统 - 超大尺寸版本 ==================== */
+/* ==================== 角色图片显示系统 ==================== */
 
 /* 角色层容器 - 基础布局 */
 .character-layer {
@@ -9,37 +9,35 @@
     height: 100%;
     z-index: 2;
     pointer-events: none;
-    overflow: hidden; /* 防止图片溢出 */
+    overflow: hidden;
 }
 
-/* 角色图片容器 - 超大尺寸 */
+/* 角色图片容器 */
 .character-container {
     position: absolute;
-    right: 20px;
-    top: 80px;
-    bottom: auto;
-    width: 800px;
-    height: 900px;
+    right: 5%;
+    bottom: 5%;
+    width: 45%;
+    height: 90%;
     z-index: 10;
     overflow: visible;
     display: flex;
     align-items: flex-end;
-    justify-content: flex-end;
+    justify-content: center;
 }
 
-/* 角色图片 - 超大缩放 */
+/* 角色图片 */
 .character-sprite {
-    max-width: 200%;
-    max-height: 200%;
+    max-width: 100%;
+    max-height: 100%;
     width: auto;
     height: auto;
     object-fit: contain;
-    object-position: bottom right;
+    object-position: bottom center;
     background: transparent;
     filter: drop-shadow(4px 6px 15px rgba(0, 0, 0, 0.6));
     transition: opacity 0.3s ease, transform 0.3s ease;
-    transform-origin: bottom right;
-    transform: scale(1.8);
+    transform-origin: bottom center;
 }
 
 /* 角色加载状态 */
@@ -74,11 +72,11 @@
 @keyframes character-enter-right {
     0% {
         opacity: 0;
-        transform: translateX(100px) scale(1.8);
+        transform: translateX(80px);
     }
     100% {
         opacity: 1;
-        transform: translateX(0) scale(1.8);
+        transform: translateX(0);
     }
 }
 
@@ -86,11 +84,11 @@
 @keyframes character-enter-left {
     0% {
         opacity: 0;
-        transform: translateX(-100px) scale(1.8);
+        transform: translateX(-80px);
     }
     100% {
         opacity: 1;
-        transform: translateX(0) scale(1.8);
+        transform: translateX(0);
     }
 }
 
@@ -98,11 +96,11 @@
 @keyframes character-fade-in {
     0% {
         opacity: 0;
-        transform: scale(1.6);
+        transform: scale(0.95);
     }
     100% {
         opacity: 1;
-        transform: scale(1.8);
+        transform: scale(1);
     }
 }
 
@@ -110,11 +108,11 @@
 @keyframes character-slide-up {
     0% {
         opacity: 0;
-        transform: translateY(50px) scale(1.8);
+        transform: translateY(50px);
     }
     100% {
         opacity: 1;
-        transform: translateY(0) scale(1.8);
+        transform: translateY(0);
     }
 }
 
@@ -147,22 +145,22 @@
 @keyframes character-exit-right {
     0% {
         opacity: 1;
-        transform: translateX(0) scale(1.8);
+        transform: translateX(0);
     }
     100% {
         opacity: 0;
-        transform: translateX(100px) scale(1.8);
+        transform: translateX(80px);
     }
 }
 
 @keyframes character-exit-left {
     0% {
         opacity: 1;
-        transform: translateX(0) scale(1.8);
+        transform: translateX(0);
     }
     100% {
         opacity: 0;
-        transform: translateX(-100px) scale(1.8);
+        transform: translateX(-80px);
     }
 }
 
@@ -187,93 +185,44 @@
 
 /* Canvas处理后的图片 */
 .character-sprite.canvas-processed {
-    /* Canvas处理后不需要额外滤镜 */
     filter: drop-shadow(4px 6px 15px rgba(0, 0, 0, 0.6));
 }
 
 /* ==================== 响应式设计 ==================== */
 
-/* 超大屏幕 */
-@media (min-width: 1600px) {
-    .character-container {
-        right: 30px;
-        top: 80px;
-        width: 900px;
-        height: 1000px;
-    }
-    
-    .character-sprite {
-        transform: scale(2.0);
-    }
-}
-
 /* 大屏幕 */
-@media (min-width: 1400px) and (max-width: 1599px) {
+@media (min-width: 1400px) {
     .character-container {
-        right: 25px;
-        top: 80px;
-        width: 850px;
-        height: 950px;
-    }
-    
-    .character-sprite {
-        transform: scale(1.9);
+        right: 8%;
+        width: 40%;
+        height: 88%;
     }
 }
 
 /* 中等屏幕 */
-@media (max-width: 1399px) and (min-width: 1200px) {
+@media (max-width: 1399px) and (min-width: 1000px) {
     .character-container {
-        right: 20px;
-        top: 75px;
-        width: 750px;
-        height: 850px;
-    }
-    
-    .character-sprite {
-        transform: scale(1.7);
+        right: 5%;
+        width: 45%;
+        height: 85%;
     }
 }
 
-/* 小桌面 */
-@media (max-width: 1199px) and (min-width: 900px) {
+/* 小屏幕 */
+@media (max-width: 999px) and (min-width: 700px) {
     .character-container {
-        right: 15px;
-        top: 70px;
-        width: 650px;
-        height: 750px;
-    }
-    
-    .character-sprite {
-        transform: scale(1.5);
-    }
-}
-
-/* 平板 */
-@media (max-width: 899px) and (min-width: 600px) {
-    .character-container {
-        right: 15px;
-        top: 70px;
-        width: 500px;
-        height: 650px;
-    }
-    
-    .character-sprite {
-        transform: scale(1.3);
+        right: 3%;
+        width: 50%;
+        height: 80%;
     }
 }
 
 /* 手机 */
-@media (max-width: 599px) {
+@media (max-width: 699px) {
     .character-container {
-        right: 10px;
-        top: 65px;
-        width: 400px;
-        height: 550px;
-    }
-    
-    .character-sprite {
-        transform: scale(1.2);
+        right: 2%;
+        width: 55%;
+        height: 70%;
     }
 }
 

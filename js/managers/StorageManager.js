@@ -26,10 +26,13 @@ class StorageManager {
     }
 
     /**
-     * 清除所有缓存数据（包括localStorage和文件）
+     * 清除所有缓存数据（保留设置）
      */
     clearAllCache() {
         console.log('🧹 清除所有缓存数据...');
+        
+        // 先备份设置
+        const settings = localStorage.getItem('ai_galgame_settings');
         
         // 清除localStorage中的所有游戏数据
         Object.values(this.STORAGE_KEYS).forEach(key => {
@@ -37,11 +40,11 @@ class StorageManager {
             console.log(`✅ 已清除: ${key}`);
         });
         
-        // 清除所有可能的游戏相关数据（更全面的清理）
+        // 清除所有可能的游戏相关数据（更全面的清理，但保留设置）
         const keysToRemove = [];
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key && (key.includes('ai_galgame') || key.includes('galgame') || key.includes('playkit'))) {
+            if (key && key !== 'ai_galgame_settings' && (key.includes('ai_galgame') || key.includes('galgame') || key.includes('playkit'))) {
                 keysToRemove.push(key);
             }
         }
@@ -50,6 +53,12 @@ class StorageManager {
             localStorage.removeItem(key);
             console.log(`✅ 已清除额外缓存: ${key}`);
         });
+        
+        // 恢复设置
+        if (settings) {
+            localStorage.setItem('ai_galgame_settings', settings);
+            console.log('✅ 已保留用户设置');
+        }
         
         // 清除sessionStorage
         sessionStorage.clear();

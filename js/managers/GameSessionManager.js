@@ -21,15 +21,40 @@ class GameSessionManager {
         this.chatHistory = [];
         this.isHistoryCollapsed = false;
 
-        // SDK配置 - 请填入你自己的配置
-        this.sdkConfig = {
+        // SDK配置 - 从设置中读取
+        this.sdkConfig = this.loadSDKConfig();
+    }
+
+    /**
+     * 从设置中加载SDK配置
+     */
+    loadSDKConfig() {
+        const defaults = {
             gameId: 'your-game-id',
             developerToken: 'your-developer-token',
-            baseURL: 'https://lab-staging.playkit.ai',
+            baseURL: 'https://playkit.ai',
             defaultChatModel: 'Qwen3-235B',
             defaultImageModel: 'gpt-image-1',
             debug: true
         };
+        
+        try {
+            const saved = localStorage.getItem('ai_galgame_settings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                return {
+                    gameId: settings.gameId || defaults.gameId,
+                    developerToken: settings.developerToken || defaults.developerToken,
+                    baseURL: settings.baseURL || defaults.baseURL,
+                    defaultChatModel: settings.defaultChatModel || defaults.defaultChatModel,
+                    defaultImageModel: settings.defaultImageModel || defaults.defaultImageModel,
+                    debug: true
+                };
+            }
+        } catch (e) {
+            console.warn('Failed to load SDK config from settings:', e);
+        }
+        return defaults;
     }
 
     /**
@@ -164,266 +189,19 @@ class GameSessionManager {
             console.log('Adding click listener to config button');
             configButton.addEventListener('click', () => {
                 console.log('Config button clicked!');
-                this.showSettingsMenu();
+                // 使用全局设置界面
+                if (window.game) {
+                    window.game.showGameSettings();
+                }
             });
         } else {
             console.error('Config button not found!');
         }
 
-        // 设置菜单事件监听器（现在使用原生弹窗，不需要复杂的监听器）
-        // this.setupSettingsMenuListeners();
-
-        // 应用保存的UI缩放设置
-        const savedScale = localStorage.getItem('ui-scale') || '0.8';
-        this.applyUIScale(savedScale);
-
         // 聊天历史记录切换按钮
         this.elements.toggleHistoryBtn.addEventListener('click', () => {
             this.toggleChatHistory();
         });
-    }
-
-    /**
-     * 显示设置菜单 - 使用浏览器原生弹窗
-     */
-    showSettingsMenu() {
-        console.log('showSettingsMenu called - using native dialogs');
-        
-        const options = [
-            '1. 清除所有缓存',
-            '2. 清除图像缓存',
-            '3. 清除人物图像缓存',
-            '4. 清除背景图缓存',
-            '5. 导出游戏数据',
-            '6. 导入游戏数据',
-            '7. 界面缩放设置',
-            '0. 关闭设置'
-        ].join('\n');
-        
-        const choice = prompt('🎮 游戏设置\n\n' + options + '\n\n请输入选项编号:');
-        
-        if (!choice) return;
-        
-        switch(choice.trim()) {
-            case '1':
-                this.handleClearAllCache();
-                break;
-            case '2':
-                this.handleClearImageCache();
-                break;
-            case '3':
-                this.handleClearCharacterImageCache();
-                break;
-            case '4':
-                this.handleClearBackgroundImageCache();
-                break;
-            case '5':
-                this.handleExportData();
-                break;
-            case '6':
-                this.handleImportData();
-                break;
-            case '7':
-                this.handleUIScaleSettings();
-                break;
-            case '0':
-                return;
-            default:
-                alert('无效选项，请重新选择');
-                this.showSettingsMenu();
-        }
-    }
-
-    /**
-     * 处理清除所有缓存
-     */
-    handleClearAllCache() {
-        if (confirm('确定要清除所有缓存吗？这将删除所有本地数据！')) {
-            try {
-                this.storageManager.clearAllCache();
-                alert('✅ 所有缓存已清除！');
-            } catch (error) {
-                alert('❌ 清除缓存失败：' + error.message);
-            }
-        }
-        this.showSettingsMenu();
-    }
-
-    /**
-     * 处理清除图像缓存
-     */
-    handleClearImageCache() {
-        if (confirm('确定要清除图像缓存吗？这将删除所有缓存的角色和背景图像。')) {
-            try {
-                this.storageManager.clearImageCache();
-                alert('✅ 图像缓存已清除！');
-            } catch (error) {
-                alert('❌ 清除图像缓存失败：' + error.message);
-            }
-        }
-        this.showSettingsMenu();
-    }
-
-    /**
-     * 处理清除人物图像缓存
-     */
-    handleClearCharacterImageCache() {
-        if (confirm('确定要清除人物图像缓存吗？这将删除所有缓存的角色图像。')) {
-            try {
-                this.storageManager.clearCharacterImageCache();
-                alert('✅ 人物图像缓存已清除！');
-            } catch (error) {
-                alert('❌ 清除人物图像缓存失败：' + error.message);
-            }
-        }
-        this.showSettingsMenu();
-    }
-
-    /**
-     * 处理清除背景图缓存
-     */
-    handleClearBackgroundImageCache() {
-        if (confirm('确定要清除背景图缓存吗？这将删除所有缓存的背景图像。')) {
-            try {
-                this.storageManager.clearBackgroundImageCache();
-                alert('✅ 背景图缓存已清除！');
-            } catch (error) {
-                alert('❌ 清除背景图缓存失败：' + error.message);
-            }
-        }
-        this.showSettingsMenu();
-    }
-
-    /**
-     * 处理导出游戏数据
-     */
-    handleExportData() {
-        try {
-            const gameData = this.storageManager.collectAllGameData();
-            const dataStr = JSON.stringify(gameData, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `ai-galgame-backup-${new Date().toISOString().slice(0, 10)}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            alert('✅ 游戏数据导出成功！');
-        } catch (error) {
-            alert('❌ 导出失败：' + error.message);
-        }
-        this.showSettingsMenu();
-    }
-
-    /**
-     * 处理导入游戏数据
-     */
-    handleImportData() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';
-        
-        input.onchange = (e) => {
-            const file = e.target.files[0];
-            if (!file) {
-                this.showSettingsMenu();
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const gameData = JSON.parse(e.target.result);
-                    
-                    if (confirm('确定要导入这个备份吗？当前数据将被覆盖！')) {
-                        this.storageManager.restoreAllGameData(gameData);
-                        alert('✅ 游戏数据导入成功！页面将刷新以应用新数据。');
-                        window.location.reload();
-                    } else {
-                        this.showSettingsMenu();
-                    }
-                } catch (error) {
-                    alert('❌ 导入失败：文件格式不正确');
-                    this.showSettingsMenu();
-                }
-            };
-            reader.readAsText(file);
-        };
-        
-        input.click();
-    }
-
-    /**
-     * 处理界面缩放设置
-     */
-    handleUIScaleSettings() {
-        const currentScale = localStorage.getItem('ui-scale') || '0.8';
-        const scaleOptions = [
-            '1. 80% (推荐)',
-            '2. 100% (标准)',
-            '3. 120% (放大)',
-            '',
-            '当前设置: ' + (currentScale === '0.8' ? '80%' : currentScale === '1.0' ? '100%' : '120%'),
-            '',
-            '0. 返回上级菜单'
-        ].join('\n');
-        
-        const choice = prompt('🔧 界面缩放设置\n\n' + scaleOptions + '\n\n请输入选项编号:');
-        
-        if (!choice) {
-            this.showSettingsMenu();
-            return;
-        }
-        
-        let newScale = currentScale;
-        switch(choice.trim()) {
-            case '1':
-                newScale = '0.8';
-                break;
-            case '2':
-                newScale = '1.0';
-                break;
-            case '3':
-                newScale = '1.2';
-                break;
-            case '0':
-                this.showSettingsMenu();
-                return;
-            default:
-                alert('无效选项');
-                this.handleUIScaleSettings();
-                return;
-        }
-        
-        if (newScale !== currentScale) {
-            localStorage.setItem('ui-scale', newScale);
-            this.applyUIScale(newScale);
-            alert('✅ 界面缩放已设置为 ' + (newScale === '0.8' ? '80%' : newScale === '1.0' ? '100%' : '120%'));
-        }
-        
-        this.handleUIScaleSettings();
-    }
-
-    applyUIScale(scale) {
-        const gameMain = document.getElementById('game-main');
-        if (gameMain) {
-            if (scale === '1.0') {
-                gameMain.style.zoom = '';
-            } else {
-                gameMain.style.zoom = scale;
-            }
-        }
-    }
-
-    /**
-     * 隐藏设置菜单 - 原生弹窗版本不需要
-     */
-    hideSettingsMenu() {
-        // 原生弹窗版本不需要此方法
     }
 
     /**
@@ -470,6 +248,9 @@ class GameSessionManager {
                     
                     // 回复完成后，尝试生成新图像
                     await this.handleImageGeneration(completeReply);
+                    
+                    // 对话完成后自动保存（如果启用）
+                    await this.autoSaveIfEnabled();
                 }
             );
             
@@ -818,7 +599,7 @@ class GameSessionManager {
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const data = imageData.data;
 
-            // 白色抠图算法
+            // 白色抠图算法 - 原始版本
             for (let i = 0; i < data.length; i += 4) {
                 const r = data[i];
                 const g = data[i + 1];
@@ -830,26 +611,22 @@ class GameSessionManager {
                 
                 // 白色检测
                 const isSuperWhite = brightness > 250 && colorDeviation < 10;
-                const isVeryWhite = brightness > 235 && colorDeviation < 15;
-                const isWhite = brightness > 220 && colorDeviation < 20;
-                const isLightColor = brightness > 200 && colorDeviation < 25;
-                const isGrayish = brightness > 180 && colorDeviation < 15;
+                const isVeryWhite = brightness > 245 && colorDeviation < 15;
+                const isWhite = brightness > 235 && colorDeviation < 20;
+                const isLightGray = brightness > 225 && colorDeviation < 15;
                 
                 if (isSuperWhite) {
                     // 完全透明
                     data[i + 3] = 0;
                 } else if (isVeryWhite) {
                     // 几乎透明
-                    data[i + 3] = Math.max(0, 255 - (brightness - 200) * 4);
+                    data[i + 3] = Math.max(0, 255 - (brightness - 220) * 8);
                 } else if (isWhite) {
                     // 半透明
-                    data[i + 3] = Math.max(0, 255 - (brightness - 180) * 3);
-                } else if (isLightColor) {
+                    data[i + 3] = Math.max(0, 255 - (brightness - 210) * 5);
+                } else if (isLightGray) {
                     // 轻微透明
-                    data[i + 3] = Math.max(0, 255 - (brightness - 160) * 2);
-                } else if (isGrayish) {
-                    // 灰色边缘处理
-                    data[i + 3] = Math.max(0, 255 - (brightness - 140) * 1.5);
+                    data[i + 3] = Math.max(0, 255 - (brightness - 200) * 3);
                 }
             }
 
@@ -1021,22 +798,22 @@ class GameSessionManager {
     cleanDisplayText(text) {
         if (!text) return text;
         
-        // 检查是否已经有重复字符问题
-        const hasRepeatedChars = /(.)\1{2,}/.test(text);
+        // 检查是否有异常的重复字符（5个以上才算异常）
+        const hasRepeatedChars = /(.)\1{4,}/.test(text);
         if (!hasRepeatedChars) {
-            return text; // 没有重复字符，直接返回
+            return text; // 没有异常重复字符，直接返回
         }
         
         console.warn('🚨 Detected repeated characters in display text:', text);
         
-        // 修复重复字符
-        let cleaned = text.replace(/(.)\1+/g, (match, char) => {
-            // 如果是标点符号，最多保留2个
+        // 修复异常重复字符（5个以上的重复）
+        let cleaned = text.replace(/(.)\1{4,}/g, (match, char) => {
+            // 如果是标点符号，最多保留3个
             if (/[。！？~，、；：""''（）【】《》]/.test(char)) {
-                return char.repeat(Math.min(match.length, 2));
+                return char.repeat(Math.min(match.length, 3));
             }
-            // 其他字符只保留一个
-            return char;
+            // 其他字符最多保留2个
+            return char.repeat(2);
         });
         
         console.log('🧹 Fixed repeated characters:', text, '->', cleaned);
@@ -1129,7 +906,11 @@ class GameSessionManager {
         // 添加对话框进场动画
         this.elements.dialogueText.parentElement.parentElement.style.animation = 'dialogue-slide-up 0.5s ease-out';
         
-        const speed = 50; // 打字速度 (ms)
+        // 根据设置获取打字速度
+        const settings = window.gameSettings || {};
+        const speedMap = { 'slow': 80, 'medium': 50, 'fast': 20 };
+        const speed = speedMap[settings.textSpeed] || 50;
+        
         let displayedText = '';
         
         for (let i = 0; i < text.length; i++) {
@@ -1240,6 +1021,59 @@ class GameSessionManager {
             dialogue: dialogueStats,
             images: imageStats
         };
+    }
+
+    /**
+     * 自动保存（如果启用）
+     */
+    async autoSaveIfEnabled() {
+        try {
+            // 检查是否启用自动保存
+            const settings = JSON.parse(localStorage.getItem('ai_galgame_settings') || '{}');
+            if (!settings.autoSaveEnabled) {
+                console.log('⏭️ 自动保存未启用，跳过');
+                return;
+            }
+
+            console.log('💾 开始自动保存...');
+            
+            // 收集游戏数据
+            const gameData = this.storageManager.collectAllGameData();
+            
+            // 使用AI角色名称作为存档文件名（确保文件名安全）
+            const safeFileName = this.aiProfile.nickname.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_');
+            
+            const saveData = {
+                saveName: `${this.aiProfile.nickname}的存档`,
+                saveTime: new Date().toISOString(),
+                version: '1.0.0',
+                characterName: this.aiProfile.nickname,
+                fileName: `${safeFileName}.json`,
+                gameData: gameData
+            };
+
+            // 尝试保存到服务器
+            const response = await fetch('http://localhost:3001/api/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ saveData })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('✅ 自动保存成功:', result.fileName);
+            } else {
+                console.warn('⚠️ 自动保存失败，服务器返回错误');
+            }
+            
+        } catch (error) {
+            // 自动保存失败不影响游戏进行，只记录日志
+            if (error.message.includes('Failed to fetch')) {
+                console.log('⚠️ 自动保存跳过：服务器未运行');
+            } else {
+                console.warn('⚠️ 自动保存失败:', error.message);
+            }
+        }
     }
 
     /**

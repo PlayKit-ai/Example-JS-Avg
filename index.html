@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="styles/gameplay.css">
     <link rel="stylesheet" href="styles/game-ui.css">
     <link rel="stylesheet" href="styles/character.css">
+    <link rel="stylesheet" href="styles/settings.css">
 </head>
 <body>
     <div id="app">
@@ -244,6 +245,206 @@
                     <button class="menu-btn" id="menu-load">读取</button>
                     <button class="menu-btn" id="menu-config">设置</button>
                     <button class="menu-btn" id="menu-exit">退出</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 设置弹窗 -->
+        <div id="settings-modal" class="settings-modal">
+            <div class="settings-container">
+                <div class="settings-header">
+                    <h2>游戏设定</h2>
+                    <button id="settings-close" class="settings-close-btn">×</button>
+                </div>
+                
+                <div class="settings-content">
+                    <!-- 音频设置 -->
+                    <div class="settings-section">
+                        <h3>🔊 音频设置</h3>
+                        <div class="settings-item">
+                            <label>BGM音量</label>
+                            <div class="slider-container">
+                                <input type="range" id="setting-bgm-volume" min="0" max="100" value="50">
+                                <span id="bgm-volume-value">50%</span>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <label>BGM开关</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="setting-bgm-enabled" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="settings-item">
+                            <label>音效音量 <span class="tag-reserved">(预留)</span></label>
+                            <div class="slider-container">
+                                <input type="range" id="setting-sfx-volume" min="0" max="100" value="50">
+                                <span id="sfx-volume-value">50%</span>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <label>音效开关 <span class="tag-reserved">(预留)</span></label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="setting-sfx-enabled" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 显示设置 -->
+                    <div class="settings-section">
+                        <h3>🖥️ 显示设置</h3>
+                        <div class="settings-item">
+                            <label>界面缩放</label>
+                            <div class="button-group">
+                                <button class="scale-btn" data-scale="0.8">80%</button>
+                                <button class="scale-btn" data-scale="1.0">100%</button>
+                                <button class="scale-btn" data-scale="1.2">120%</button>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <label>对话文字速度</label>
+                            <div class="button-group">
+                                <button class="speed-btn" data-speed="slow">慢</button>
+                                <button class="speed-btn" data-speed="medium">中</button>
+                                <button class="speed-btn" data-speed="fast">快</button>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <label>自动播放延迟</label>
+                            <div class="button-group">
+                                <button class="delay-btn" data-delay="2000">2秒</button>
+                                <button class="delay-btn" data-delay="3000">3秒</button>
+                                <button class="delay-btn" data-delay="5000">5秒</button>
+                                <button class="delay-btn" data-delay="8000">8秒</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 游戏设置 -->
+                    <div class="settings-section">
+                        <h3>⚙️ 游戏设置</h3>
+                        <div class="settings-item">
+                            <label>自动保存</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="setting-auto-save" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- API配置 -->
+                    <div class="settings-section">
+                        <h3>🔑 API配置</h3>
+                        <div class="settings-item column">
+                            <label>Game ID</label>
+                            <input type="text" id="setting-game-id" class="settings-input" placeholder="your-game-id">
+                        </div>
+                        <div class="settings-item column">
+                            <label>Developer Token</label>
+                            <input type="password" id="setting-token" class="settings-input" placeholder="your-developer-token">
+                        </div>
+                        <div class="settings-item column">
+                            <label>Base URL</label>
+                            <input type="text" id="setting-base-url" class="settings-input" placeholder="https://playkit.ai">
+                        </div>
+                        <div class="settings-item">
+                            <label>默认AI模型</label>
+                            <select id="setting-chat-model" class="settings-select">
+                                <option value="Qwen3-235B">Qwen3-235B</option>
+                                <option value="Qwen3-32B">Qwen3-32B</option>
+                                <option value="gpt-4o">GPT-4o</option>
+                                <option value="gpt-4o-mini">GPT-4o-mini</option>
+                                <option value="claude-3-5-sonnet">Claude-3.5-Sonnet</option>
+                            </select>
+                        </div>
+                        <div class="settings-item">
+                            <label>默认图像模型</label>
+                            <select id="setting-image-model" class="settings-select">
+                                <option value="gpt-image-1">GPT-Image-1</option>
+                                <option value="dall-e-3">DALL-E 3</option>
+                                <option value="nano-banana">Nano-Banana</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 数据管理 -->
+                    <div class="settings-section">
+                        <h3>🗂️ 数据管理</h3>
+                        <div class="settings-item">
+                            <label>清除所有缓存</label>
+                            <button id="btn-clear-all-cache" class="settings-action-btn danger">清除</button>
+                        </div>
+                        <div class="settings-item">
+                            <label>清除图像缓存</label>
+                            <button id="btn-clear-image-cache" class="settings-action-btn warning">清除</button>
+                        </div>
+                        <div class="settings-item">
+                            <label>清除对话历史</label>
+                            <button id="btn-clear-dialogue" class="settings-action-btn warning">清除</button>
+                        </div>
+                    </div>
+
+                    <!-- 关于 -->
+                    <div class="settings-section">
+                        <h3>ℹ️ 关于</h3>
+                        <div class="settings-item">
+                            <label>版本信息</label>
+                            <span class="settings-value">v1.0.0</span>
+                        </div>
+                        <div class="settings-item">
+                            <label>使用说明</label>
+                            <button id="btn-show-help" class="settings-action-btn">查看</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-footer">
+                    <button id="settings-reset" class="settings-btn secondary">恢复默认</button>
+                    <button id="settings-save" class="settings-btn primary">保存设置</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 使用说明弹窗 -->
+        <div id="help-modal" class="help-modal">
+            <div class="help-container">
+                <div class="help-header">
+                    <h2>使用说明</h2>
+                    <button id="help-close" class="settings-close-btn">×</button>
+                </div>
+                <div class="help-content">
+                    <h3>🎮 游戏简介</h3>
+                    <p>AI Galgame 是一款基于人工智能的视觉小说游戏。你可以创建自己的角色，与AI角色进行互动对话，体验独特的故事。</p>
+                    
+                    <h3>📝 快速开始</h3>
+                    <ol>
+                        <li>点击「新建游戏」创建你的角色</li>
+                        <li>填写玩家角色信息（昵称、性别、人设等）</li>
+                        <li>配置AI角色（外观、性格、开场白等）</li>
+                        <li>开始与AI角色对话互动</li>
+                    </ol>
+                    
+                    <h3>⚙️ API配置说明</h3>
+                    <p>本游戏使用 PlayKit SDK 进行AI对话和图像生成。你需要：</p>
+                    <ul>
+                        <li><strong>Game ID</strong>: 你的游戏项目ID</li>
+                        <li><strong>Token</strong>: 开发者令牌</li>
+                        <li><strong>Base URL</strong>: API服务地址</li>
+                    </ul>
+                    
+                    <h3>💾 存档说明</h3>
+                    <ul>
+                        <li>游戏数据自动保存到浏览器本地存储</li>
+                        <li>可导出存档文件进行备份</li>
+                        <li>存档文件保存在 saved_games 文件夹</li>
+                    </ul>
+                    
+                    <h3>🎵 快捷键</h3>
+                    <ul>
+                        <li><strong>Enter</strong>: 发送消息</li>
+                        <li><strong>Shift + Enter</strong>: 换行</li>
+                    </ul>
                 </div>
             </div>
         </div>
